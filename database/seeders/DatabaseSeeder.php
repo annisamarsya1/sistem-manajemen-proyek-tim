@@ -17,9 +17,36 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        // Seed Admin User
+        User::forceCreate([
+            'name' => 'Admin Utama',
+            'email' => 'admin@proyektim.com',
+            'email_verified_at' => now(),
+            'password' => bcrypt('password'),
+            'role' => 'admin',
+            'is_active' => true,
         ]);
+
+        // Seed Project Manager User
+        User::forceCreate([
+            'name' => 'Budi PM',
+            'email' => 'pm@proyektim.com',
+            'email_verified_at' => now(),
+            'password' => bcrypt('password'),
+            'role' => 'project_manager',
+            'is_active' => true,
+        ]);
+
+        // Seed Employee Users
+        for ($i = 1; $i <= 3; $i++) {
+            User::forceCreate([
+                'name' => "Employee {$i}",
+                'email' => "employee{$i}@proyektim.com",
+                'email_verified_at' => now(),
+                'password' => bcrypt('password'),
+                'role' => 'employee',
+                'is_active' => true,
+            ]);
+        }
     }
 }
