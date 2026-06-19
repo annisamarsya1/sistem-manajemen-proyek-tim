@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Livewire\Auth\Login;
 use App\Livewire\Dashboard;
+use App\Livewire\KanbanBoard;
 use App\Livewire\ProjectStudio;
 use Illuminate\Support\Facades\Route;
 
@@ -19,9 +20,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/projects', ProjectStudio::class)->name('projects')->middleware('admin_or_pm');
 
-    Route::get('/tasks', function () {
-        return view('placeholders.tasks');
-    })->name('tasks');
+    Route::get('/tasks', KanbanBoard::class)->name('tasks');
 
     Route::get('/timelogs', function () {
         return view('placeholders.timelogs');
