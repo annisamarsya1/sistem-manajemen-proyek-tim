@@ -207,8 +207,19 @@ class KanbanBoard extends Component
             'taskAssigneeId' => ['nullable', 'exists:users,id'],
             'taskPriority' => ['required', 'in:low,medium,high'],
             'taskStartDate' => ['nullable', 'date'],
-            'taskDueDate' => ['nullable', 'date'],
+            'taskDueDate' => ['nullable', 'date', 'after_or_equal:taskStartDate'],
         ]);
+
+        // Validate due_date is not before the project's start_date
+        if ($validated['taskDueDate'] !== null && $validated['taskDueDate'] !== '') {
+            $project = TeamProject::find($validated['taskProjectId']);
+
+            if ($project && $project->start_date && $validated['taskDueDate'] < $project->start_date->format('Y-m-d')) {
+                $this->addError('taskDueDate', 'Due date tidak boleh sebelum tanggal mulai proyek ('.$project->start_date->format('d/m/Y').').');
+
+                return;
+            }
+        }
 
         Task::create([
             'title' => $validated['taskTitle'],
@@ -266,10 +277,21 @@ class KanbanBoard extends Component
             'taskAssigneeId' => ['nullable', 'exists:users,id'],
             'taskPriority' => ['required', 'in:low,medium,high'],
             'taskStartDate' => ['nullable', 'date'],
-            'taskDueDate' => ['nullable', 'date'],
+            'taskDueDate' => ['nullable', 'date', 'after_or_equal:taskStartDate'],
             'taskStatus' => ['required', 'in:todo,in_progress,review,done'],
             'taskProgressPercent' => ['required', 'integer', 'min:0', 'max:100'],
         ]);
+
+        // Validate due_date is not before the project's start_date
+        if ($validated['taskDueDate'] !== null && $validated['taskDueDate'] !== '') {
+            $project = TeamProject::find($validated['taskProjectId']);
+
+            if ($project && $project->start_date && $validated['taskDueDate'] < $project->start_date->format('Y-m-d')) {
+                $this->addError('taskDueDate', 'Due date tidak boleh sebelum tanggal mulai proyek ('.$project->start_date->format('d/m/Y').').');
+
+                return;
+            }
+        }
 
         $task = Task::findOrFail($this->editingTaskId);
 

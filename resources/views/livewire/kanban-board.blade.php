@@ -90,7 +90,7 @@
                 {{-- Empty state --}}
                 @if($tasksByStatus[$statusKey]->isEmpty())
                     <div class="flex-1 flex items-center justify-center text-slate-600 text-xs select-none pointer-events-none py-8">
-                        Seret tugas ke sini
+                        Tidak ada tugas di sini.
                     </div>
                 @endif
             </div>

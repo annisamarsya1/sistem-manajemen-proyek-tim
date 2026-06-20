@@ -143,7 +143,7 @@ class ProjectStudio extends Component
     {
         $user = $this->currentUser();
 
-        if ($user->role === 'employee') {
+        if (! in_array($user->role, ['admin', 'project_manager'])) {
             abort(403, 'Anda tidak memiliki akses untuk membuat proyek.');
         }
 
@@ -179,7 +179,7 @@ class ProjectStudio extends Component
     {
         $user = $this->currentUser();
 
-        if ($user->role === 'employee') {
+        if (! in_array($user->role, ['admin', 'project_manager'])) {
             abort(403, 'Anda tidak memiliki akses untuk mengedit proyek.');
         }
 
@@ -202,7 +202,7 @@ class ProjectStudio extends Component
     {
         $user = $this->currentUser();
 
-        if ($user->role === 'employee') {
+        if (! in_array($user->role, ['admin', 'project_manager'])) {
             abort(403, 'Anda tidak memiliki akses untuk memperbarui proyek.');
         }
 
@@ -239,7 +239,7 @@ class ProjectStudio extends Component
     {
         $user = $this->currentUser();
 
-        if ($user->role === 'employee') {
+        if (! in_array($user->role, ['admin', 'project_manager'])) {
             abort(403, 'Anda tidak memiliki akses untuk menghapus proyek.');
         }
 

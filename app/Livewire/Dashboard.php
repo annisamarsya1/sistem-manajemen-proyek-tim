@@ -217,7 +217,7 @@ class Dashboard extends Component
     {
         $user = $this->currentUser();
 
-        if ($user->role === 'employee') {
+        if (! in_array($user->role, ['admin', 'project_manager'])) {
             abort(403, 'Anda tidak memiliki akses untuk menyetujui time log.');
         }
 
@@ -242,7 +242,7 @@ class Dashboard extends Component
     {
         $user = $this->currentUser();
 
-        if ($user->role === 'employee') {
+        if (! in_array($user->role, ['admin', 'project_manager'])) {
             abort(403, 'Anda tidak memiliki akses untuk menolak time log.');
         }
 
@@ -269,7 +269,7 @@ class Dashboard extends Component
 
     public function exportCsv(): ?BinaryFileResponse
     {
-        if ($this->currentUser()->role === 'employee') {
+        if (! in_array($this->currentUser()->role, ['admin', 'project_manager'])) {
             abort(403);
         }
 
@@ -289,7 +289,7 @@ class Dashboard extends Component
 
     public function exportExcel(): ?BinaryFileResponse
     {
-        if ($this->currentUser()->role === 'employee') {
+        if (! in_array($this->currentUser()->role, ['admin', 'project_manager'])) {
             abort(403);
         }
 

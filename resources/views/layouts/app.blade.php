@@ -40,47 +40,68 @@
 </head>
 <body class="h-full text-slate-100 font-sans antialiased" x-data="{ mobileSidebarOpen: false }">
 
-    <!-- Flash Notifications Area -->
-    <div class="fixed top-5 right-5 z-50 flex flex-col gap-3 max-w-sm w-full pointer-events-none">
-        @if (session()->has('success'))
-            <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 5000)" 
-                 x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-2 sm:translate-y-0 sm:translate-x-2"
-                 x-transition:enter-end="opacity-100 translate-y-0 sm:translate-x-0" x-transition:leave="transition ease-in duration-100"
-                 x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-                 class="pointer-events-auto flex items-center justify-between p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl shadow-lg backdrop-blur-md">
-                <div class="flex items-center gap-2.5">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 flex-shrink-0">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clip-rule="evenodd" />
-                    </svg>
-                    <p class="text-sm font-semibold">{{ session('success') }}</p>
+    <!-- Toast Notifications (Alpine.js auto-dismiss) -->
+    <div
+        x-data="{
+            notifications: [],
+            add(type, msg) {
+                const id = Date.now();
+                this.notifications.push({ id, type, msg });
+                setTimeout(() => this.remove(id), 4000);
+            },
+            remove(id) {
+                this.notifications = this.notifications.filter(n => n.id !== id);
+            }
+        }"
+        x-init="
+            @if(session('success')) add('success', @js(session('success'))) @endif
+            @if(session('error'))   add('error',   @js(session('error')))   @endif
+            @if(session('info'))    add('info',    @js(session('info')))    @endif
+        "
+        class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 w-80 max-w-[calc(100vw-2rem)]"
+    >
+        <template x-for="n in notifications" :key="n.id">
+            <div
+                x-show="true"
+                x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="opacity-0 translate-y-2 translate-x-2"
+                x-transition:enter-end="opacity-100 translate-y-0 translate-x-0"
+                x-transition:leave="transition ease-in duration-200"
+                x-transition:leave-start="opacity-100"
+                x-transition:leave-end="opacity-0 translate-x-4"
+                :class="{
+                    'bg-emerald-500/10 border-emerald-500/20 text-emerald-400': n.type === 'success',
+                    'bg-rose-500/10 border-rose-500/20 text-rose-400':         n.type === 'error',
+                    'bg-sky-500/10 border-sky-500/20 text-sky-400':             n.type === 'info'
+                }"
+                class="flex items-center justify-between gap-3 px-4 py-3 border rounded-xl shadow-lg backdrop-blur-md"
+            >
+                {{-- Icon --}}
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <template x-if="n.type === 'success'">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 flex-shrink-0">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clip-rule="evenodd" />
+                        </svg>
+                    </template>
+                    <template x-if="n.type === 'error'">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 flex-shrink-0">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-8-5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5a.75.75 0 0 1 .75-.75Zm0 10a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clip-rule="evenodd" />
+                        </svg>
+                    </template>
+                    <template x-if="n.type === 'info'">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 flex-shrink-0">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM9 9a.75.75 0 0 0 0 1.5h.253a.25.25 0 0 1 .244.304l-.459 2.066A1.75 1.75 0 0 0 10.747 15H11a.75.75 0 0 0 0-1.5h-.253a.25.25 0 0 1-.244-.304l.459-2.066A1.75 1.75 0 0 0 9.253 9H9Z" clip-rule="evenodd" />
+                        </svg>
+                    </template>
+                    <p class="text-sm font-semibold leading-snug" x-text="n.msg"></p>
                 </div>
-                <button @click="show = false" class="text-emerald-400 hover:text-emerald-300 ml-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                <button @click="remove(n.id)" class="flex-shrink-0 opacity-70 hover:opacity-100 transition-opacity ml-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
                     </svg>
                 </button>
             </div>
-        @endif
-
-        @if (session()->has('error'))
-            <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 5000)" 
-                 x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-2 sm:translate-y-0 sm:translate-x-2"
-                 x-transition:enter-end="opacity-100 translate-y-0 sm:translate-x-0" x-transition:leave="transition ease-in duration-100"
-                 x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-                 class="pointer-events-auto flex items-center justify-between p-4 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl shadow-lg backdrop-blur-md">
-                <div class="flex items-center gap-2.5">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 flex-shrink-0">
-                        <path fill-rule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-8-5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5a.75.75 0 0 1 .75-.75Zm0 10a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clip-rule="evenodd" />
-                    </svg>
-                    <p class="text-sm font-semibold">{{ session('error') }}</p>
-                </div>
-                <button @click="show = false" class="text-rose-400 hover:text-rose-300 ml-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-        @endif
+        </template>
     </div>
 
     <!-- Layout container -->
