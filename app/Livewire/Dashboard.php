@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Exports\TimeLogsExport;
 use App\Models\TeamProject;
 use App\Models\TimeLog;
 use App\Models\User;
@@ -14,6 +15,8 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 #[Title('Dashboard')]
 #[Layout('layouts.app', ['title' => 'Dashboard'])]
@@ -261,25 +264,58 @@ class Dashboard extends Component
     }
 
     // ---------------------------------------------------------------------------
-    // Export placeholders (Fase 7)
+    // Export
     // ---------------------------------------------------------------------------
 
-    public function exportCsv(): void
+    public function exportCsv(): ?BinaryFileResponse
     {
         if ($this->currentUser()->role === 'employee') {
             abort(403);
         }
 
-        session()->flash('info', 'Fitur export akan tersedia segera.');
+        $filters = $this->buildExportFilters();
+        $export = new TimeLogsExport($filters);
+
+        if ($export->query()->count() === 0) {
+            session()->flash('info', 'Tidak ada data untuk diekspor dengan filter ini.');
+
+            return null;
+        }
+
+        $filename = 'time_logs_'.now()->format('Y-m-d').'.csv';
+
+        return Excel::download($export, $filename, \Maatwebsite\Excel\Excel::CSV);
     }
 
-    public function exportExcel(): void
+    public function exportExcel(): ?BinaryFileResponse
     {
         if ($this->currentUser()->role === 'employee') {
             abort(403);
         }
 
-        session()->flash('info', 'Fitur export akan tersedia segera.');
+        $filters = $this->buildExportFilters();
+        $export = new TimeLogsExport($filters);
+
+        if ($export->query()->count() === 0) {
+            session()->flash('info', 'Tidak ada data untuk diekspor dengan filter ini.');
+
+            return null;
+        }
+
+        $filename = 'time_logs_'.now()->format('Y-m-d').'.xlsx';
+
+        return Excel::download($export, $filename);
+    }
+
+    /** @return array{start: string, end: string, project_id: string, status: string} */
+    private function buildExportFilters(): array
+    {
+        return [
+            'start' => $this->filterDateStart,
+            'end' => $this->filterDateEnd,
+            'project_id' => $this->filterProjectId,
+            'status' => $this->filterStatus,
+        ];
     }
 
     // ---------------------------------------------------------------------------

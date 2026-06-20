@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Exports\TimeLogsExport;
 use App\Models\TimeLog;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
@@ -11,6 +12,8 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 #[Title('Personal Timesheet')]
 #[Layout('layouts.app', ['title' => 'Personal Timesheet'])]
@@ -95,6 +98,53 @@ class PersonalTimesheet extends Component
     public function updatedFilterEnd(): void
     {
         $this->resetPage();
+    }
+
+    // ---------------------------------------------------------------------------
+    // Export
+    // ---------------------------------------------------------------------------
+
+    public function exportCsv(): ?BinaryFileResponse
+    {
+        $filters = $this->buildExportFilters();
+        $export = new TimeLogsExport($filters, Auth::id());
+
+        if ($export->query()->count() === 0) {
+            session()->flash('info', 'Tidak ada data untuk diekspor dengan filter ini.');
+
+            return null;
+        }
+
+        $filename = 'timesheet_'.str_replace(' ', '_', $this->currentUser()->name).'_'.now()->format('Y-m-d').'.csv';
+
+        return Excel::download($export, $filename, \Maatwebsite\Excel\Excel::CSV);
+    }
+
+    public function exportExcel(): ?BinaryFileResponse
+    {
+        $filters = $this->buildExportFilters();
+        $export = new TimeLogsExport($filters, Auth::id());
+
+        if ($export->query()->count() === 0) {
+            session()->flash('info', 'Tidak ada data untuk diekspor dengan filter ini.');
+
+            return null;
+        }
+
+        $filename = 'timesheet_'.str_replace(' ', '_', $this->currentUser()->name).'_'.now()->format('Y-m-d').'.xlsx';
+
+        return Excel::download($export, $filename);
+    }
+
+    /** @return array{start: string, end: string, project_id: string, status: string} */
+    private function buildExportFilters(): array
+    {
+        return [
+            'start' => $this->filterStart,
+            'end' => $this->filterEnd,
+            'project_id' => '',
+            'status' => '',
+        ];
     }
 
     public function render(): View
