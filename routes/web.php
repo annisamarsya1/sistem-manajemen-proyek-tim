@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Livewire\Auth\Login;
 use App\Livewire\Dashboard;
 use App\Livewire\KanbanBoard;
+use App\Livewire\PersonalTimesheet;
 use App\Livewire\ProjectStudio;
 use Illuminate\Support\Facades\Route;
 
@@ -26,9 +27,7 @@ Route::middleware('auth')->group(function () {
         return view('placeholders.timelogs');
     })->name('timelogs');
 
-    Route::get('/timesheet', function () {
-        return view('placeholders.timesheet');
-    })->name('timesheet');
+    Route::get('/timesheet', PersonalTimesheet::class)->name('timesheet');
 
     Route::get('/users', function () {
         return view('placeholders.users');

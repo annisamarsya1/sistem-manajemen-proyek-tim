@@ -1,8 +1,18 @@
 <div wire:poll.60000ms class="space-y-8">
 
     {{-- ===================================================================== --}}
-    {{-- Flash Notifications (info) --}}
+    {{-- Flash Notifications --}}
     {{-- ===================================================================== --}}
+    @if (session()->has('success'))
+        <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 5000)"
+             class="flex items-center gap-3 p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 flex-shrink-0">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clip-rule="evenodd" />
+            </svg>
+            <p class="text-sm font-medium">{{ session('success') }}</p>
+        </div>
+    @endif
+
     @if (session()->has('info'))
         <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 5000)"
              class="flex items-center gap-3 p-4 bg-sky-500/10 border border-sky-500/20 text-sky-400 rounded-xl">
@@ -12,6 +22,13 @@
             <p class="text-sm font-medium">{{ session('info') }}</p>
         </div>
     @endif
+
+    {{-- ===================================================================== --}}
+    {{-- Add Time Log --}}
+    {{-- ===================================================================== --}}
+    <div class="flex justify-end">
+        <livewire:time-log-form />
+    </div>
 
     {{-- ===================================================================== --}}
     {{-- Bagian 1: Analytics Cards --}}
