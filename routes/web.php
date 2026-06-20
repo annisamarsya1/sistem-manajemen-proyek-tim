@@ -6,6 +6,7 @@ use App\Livewire\Dashboard;
 use App\Livewire\KanbanBoard;
 use App\Livewire\PersonalTimesheet;
 use App\Livewire\ProjectStudio;
+use App\Livewire\UserManagement;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
@@ -23,15 +24,11 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/tasks', KanbanBoard::class)->name('tasks');
 
-    Route::get('/timelogs', function () {
-        return view('placeholders.timelogs');
-    })->name('timelogs');
+    Route::get('/timelogs', Dashboard::class)->name('timelogs');
 
     Route::get('/timesheet', PersonalTimesheet::class)->name('timesheet');
 
-    Route::get('/users', function () {
-        return view('placeholders.users');
-    })->name('users')->middleware('admin_only');
+    Route::get('/users', UserManagement::class)->name('users')->middleware('admin_only');
 
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });

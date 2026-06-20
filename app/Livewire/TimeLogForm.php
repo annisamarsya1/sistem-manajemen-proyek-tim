@@ -66,13 +66,11 @@ class TimeLogForm extends Component
                 ->pluck('project_id');
 
             return TeamProject::whereIn('id', $projectIds)
-                ->where('status', 'active')
                 ->orderBy('title')
                 ->get(['id', 'title']);
         }
 
-        return TeamProject::where('status', 'active')
-            ->orderBy('title')
+        return TeamProject::orderBy('title')
             ->get(['id', 'title']);
     }
 
@@ -89,15 +87,9 @@ class TimeLogForm extends Component
             return;
         }
 
-        $user = $this->currentUser();
-
-        $query = Task::where('project_id', $this->projectId);
-
-        if ($user->role === 'employee') {
-            $query->where('assignee_id', $user->id);
-        }
-
-        $this->availableTasks = $query->orderBy('title')->get(['id', 'title']);
+        $this->availableTasks = Task::where('project_id', $this->projectId)
+            ->orderBy('title')
+            ->get(['id', 'title']);
     }
 
     // ---------------------------------------------------------------------------
@@ -109,9 +101,16 @@ class TimeLogForm extends Component
         $this->validate([
             'projectId' => 'required|exists:team_projects,id',
             'taskId' => 'required|exists:tasks,id',
-            'startTime' => 'required|date|before:now',
+            'startTime' => 'required|date',
             'endTime' => 'required|date|after:startTime',
         ]);
+
+        // Jam mulai tidak boleh lebih dari 5 menit ke depan
+        if (Carbon::parse($this->startTime)->isAfter(now()->addMinutes(5))) {
+            $this->addError('startTime', 'Jam mulai tidak boleh di masa depan.');
+
+            return;
+        }
 
         // Durasi maksimal 12 jam
         $durationMinutes = Carbon::parse($this->startTime)->diffInMinutes(Carbon::parse($this->endTime));

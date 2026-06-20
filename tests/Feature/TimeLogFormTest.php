@@ -36,7 +36,8 @@ test('admin sees all active projects', function () {
 
     $component = Livewire::actingAs($admin)->test(TimeLogForm::class);
 
-    expect($component->get('availableProjects'))->toHaveCount(3);
+    // Semua proyek ditampilkan tanpa filter status
+    expect($component->get('availableProjects'))->toHaveCount(5);
 });
 
 test('employee sees only projects where they have assigned tasks', function () {
@@ -77,7 +78,8 @@ test('updating project id filters only assigned tasks for employee', function ()
     Livewire::actingAs($employee)
         ->test(TimeLogForm::class)
         ->set('projectId', (string) $project->id)
-        ->assertCount('availableTasks', 1);
+        // Semua task di proyek ditampilkan, bukan hanya yang diassign ke employee
+        ->assertCount('availableTasks', 2);
 });
 
 test('save time log validates required fields', function () {

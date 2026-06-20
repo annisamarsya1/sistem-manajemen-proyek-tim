@@ -96,7 +96,7 @@
                             </label>
                             <input
                                 type="datetime-local"
-                                wire:model="startTime"
+                                wire:model.blur="startTime"
                                 class="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all [color-scheme:dark] @error('startTime') border-rose-500/60 @enderror">
                             @error('startTime')
                                 <p class="mt-1.5 text-xs text-rose-400">{{ $message }}</p>
@@ -108,7 +108,7 @@
                             </label>
                             <input
                                 type="datetime-local"
-                                wire:model="endTime"
+                                wire:model.blur="endTime"
                                 class="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all [color-scheme:dark] @error('endTime') border-rose-500/60 @enderror">
                             @error('endTime')
                                 <p class="mt-1.5 text-xs text-rose-400">{{ $message }}</p>
