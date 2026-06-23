@@ -22,7 +22,7 @@
         <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
             {{-- Detail button --}}
             <button wire:click.stop="openTask({{ $task->id }})"
-                    class="p-1 text-slate-400 hover:text-indigo-400 transition-colors"
+                    class="p-1 text-slate-400 hover:text-brand-400 transition-colors"
                     title="Lihat Detail">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.641 0-8.58-3.007-9.964-7.178Z" />
@@ -55,7 +55,7 @@
 
     {{-- Title --}}
     <button wire:click="openTask({{ $task->id }})"
-            class="text-left w-full text-sm font-semibold text-white hover:text-indigo-300 transition-colors duration-150 leading-snug mb-3">
+            class="text-left w-full text-sm font-semibold text-white hover:text-brand-300 transition-colors duration-150 leading-snug mb-3">
         {{ $task->title }}
     </button>
 
@@ -67,7 +67,7 @@
                 <span class="text-[10px] text-slate-400">{{ (int) $task->progress_percent }}%</span>
             </div>
             <div class="bg-slate-700 rounded-full h-1">
-                <div class="bg-indigo-500 h-1 rounded-full transition-all"
+                <div class="bg-brand-500 h-1 rounded-full transition-all"
                      style="width: {{ $task->progress_percent }}%"></div>
             </div>
         </div>
@@ -78,7 +78,7 @@
         {{-- Assignee --}}
         <div class="flex items-center gap-1.5 min-w-0">
             @if($task->assignee)
-                <div class="w-5 h-5 rounded-md bg-slate-700 border border-slate-600 flex items-center justify-center text-[9px] font-bold text-indigo-400 flex-shrink-0">
+                <div class="w-5 h-5 rounded-md bg-slate-700 border border-slate-600 flex items-center justify-center text-[9px] font-bold text-brand-400 flex-shrink-0">
                     {{ Str::of($task->assignee->name)->explode(' ')->take(2)->map(fn($w) => Str::substr($w, 0, 1))->implode('') }}
                 </div>
                 <span class="text-[11px] text-slate-400 truncate">{{ $task->assignee->name }}</span>

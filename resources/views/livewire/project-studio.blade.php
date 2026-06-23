@@ -27,7 +27,7 @@
             <p class="text-sm text-slate-500 mt-0.5">Kelola semua proyek tim Anda.</p>
         </div>
         <button @click="$wire.openCreateModal()"
-                class="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl transition-all duration-150 shadow-lg shadow-indigo-600/20 cursor-pointer">
+                class="flex items-center gap-2 px-4 py-2 bg-brand-500 hover:bg-brand-400 text-white text-sm font-semibold rounded-xl transition-all duration-150 shadow-lg shadow-brand-500/20 cursor-pointer">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
@@ -40,7 +40,7 @@
     {{-- ===================================================================== --}}
     <div class="flex flex-wrap items-center gap-3">
         <select wire:model.live="filterStatus"
-                class="px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all">
+                class="px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all">
             <option value="">Semua Status</option>
             <option value="planning">Planning</option>
             <option value="active">Active</option>
@@ -49,7 +49,7 @@
             <option value="cancelled">Cancelled</option>
         </select>
         <select wire:model.live="filterPriority"
-                class="px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all">
+                class="px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all">
             <option value="">Semua Prioritas</option>
             <option value="low">Low</option>
             <option value="medium">Medium</option>
@@ -107,7 +107,7 @@
                                     @php
                                         $priorityMap = [
                                             'low'    => 'bg-slate-500/10 text-slate-400 border-slate-500/20',
-                                            'medium' => 'bg-sky-500/10 text-sky-400 border-sky-500/20',
+                                            'medium' => 'bg-secondary-300/10 text-secondary-500 border-secondary-300/30',
                                             'high'   => 'bg-orange-500/10 text-orange-400 border-orange-500/20',
                                             'urgent' => 'bg-rose-500/10 text-rose-400 border-rose-500/20',
                                         ];
@@ -136,7 +136,7 @@
                                 <td class="px-5 py-3.5">
                                     <div class="flex items-center justify-center gap-2">
                                         <button wire:click="editProject({{ $project->id }})"
-                                                class="p-1.5 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-all cursor-pointer"
+                                                class="p-1.5 text-slate-400 hover:text-brand-400 hover:bg-brand-400/10 rounded-lg transition-all cursor-pointer"
                                                 title="Edit proyek">
                                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
                                                 <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
@@ -195,7 +195,7 @@
              @click.stop>
 
             {{-- Top accent --}}
-            <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+            <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-500 via-secondary-300 to-tertiary-200"></div>
 
             {{-- Modal Header --}}
             <div class="flex items-center justify-between px-6 py-5 border-b border-slate-800">
@@ -216,7 +216,7 @@
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1.5">Judul Proyek <span class="text-rose-400">*</span></label>
                     <input wire:model="title" type="text" placeholder="Nama proyek..."
-                           class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all @error('title') border-rose-500/50 @enderror">
+                           class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all @error('title') border-rose-500/50 @enderror">
                     @error('title')
                         <p class="text-rose-400 text-xs mt-1.5 flex items-center gap-1">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-3.5 h-3.5"><path fill-rule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14Zm.75-10a.75.75 0 0 0-1.5 0v3.5a.75.75 0 0 0 1.5 0V5Zm-.75 7a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clip-rule="evenodd" /></svg>
@@ -229,7 +229,7 @@
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1.5">Deskripsi</label>
                     <textarea wire:model="description" rows="3" placeholder="Deskripsi singkat proyek..."
-                              class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all resize-none"></textarea>
+                              class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all resize-none"></textarea>
                 </div>
 
                 {{-- Klien + Anggaran --}}
@@ -237,12 +237,12 @@
                     <div>
                         <label class="block text-xs font-semibold text-slate-400 mb-1.5">Nama Klien</label>
                         <input wire:model="clientName" type="text" placeholder="Nama perusahaan klien..."
-                               class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all">
+                               class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-400 mb-1.5">Anggaran (Rp)</label>
                         <input wire:model="budget" type="number" min="0" step="1000" placeholder="0"
-                               class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all @error('budget') border-rose-500/50 @enderror">
+                               class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all @error('budget') border-rose-500/50 @enderror">
                         @error('budget')
                             <p class="text-rose-400 text-xs mt-1.5">{{ $message }}</p>
                         @enderror
@@ -254,12 +254,12 @@
                     <div>
                         <label class="block text-xs font-semibold text-slate-400 mb-1.5">Tanggal Mulai</label>
                         <input wire:model="startDate" type="date"
-                               class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all [color-scheme:dark]">
+                               class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all [color-scheme:dark]">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-400 mb-1.5">Deadline <span class="text-rose-400">*</span></label>
                         <input wire:model="deadline" type="date"
-                               class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all [color-scheme:dark] @error('deadline') border-rose-500/50 @enderror">
+                               class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all [color-scheme:dark] @error('deadline') border-rose-500/50 @enderror">
                         @error('deadline')
                             <p class="text-rose-400 text-xs mt-1.5">{{ $message }}</p>
                         @enderror
@@ -271,7 +271,7 @@
                     <div>
                         <label class="block text-xs font-semibold text-slate-400 mb-1.5">Prioritas <span class="text-rose-400">*</span></label>
                         <select wire:model="priority"
-                                class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all">
+                                class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all">
                             <option value="low">Low</option>
                             <option value="medium">Medium</option>
                             <option value="high">High</option>
@@ -281,7 +281,7 @@
                     <div>
                         <label class="block text-xs font-semibold text-slate-400 mb-1.5">Status <span class="text-rose-400">*</span></label>
                         <select wire:model="status"
-                                class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all">
+                                class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all">
                             <option value="planning">Planning</option>
                             <option value="active">Active</option>
                             <option value="on_hold">On Hold</option>
@@ -300,7 +300,7 @@
                     <button type="submit"
                             wire:loading.attr="disabled"
                             wire:target="{{ $editingId ? 'update' : 'save' }}"
-                            class="flex items-center gap-2 px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl transition-all shadow-lg shadow-indigo-600/20 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer">
+                            class="flex items-center gap-2 px-5 py-2 bg-brand-500 hover:bg-brand-400 text-white text-sm font-semibold rounded-xl transition-all shadow-lg shadow-brand-500/20 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer">
                         <svg wire:loading wire:target="{{ $editingId ? 'update' : 'save' }}" class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
