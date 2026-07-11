@@ -2,35 +2,51 @@
 
 use App\Http\Controllers\AuthController;
 use App\Livewire\Auth\Login;
-use App\Livewire\Dashboard;
-use App\Livewire\KanbanBoard;
-use App\Livewire\PersonalTimesheet;
-use App\Livewire\ProjectStudio;
-use App\Livewire\UserManagement;
 use Illuminate\Support\Facades\Route;
 
-Route::view('/', 'welcome')->name('home');
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+| Daftar semua route atau URL yang bisa diakses via browser.
+| Route ini secara default sudah termasuk proteksi CSRF.
+*/
 
-// Guest only
-Route::middleware('guest')->group(function () {
-    Route::get('/login', Login::class)->name('login');
+// Root redirect: Jika buka URL root (/), arahkan langsung ke halaman login.
+Route::get('/', function () {
+    return redirect()->route('login');
 });
 
-// Authenticated
+// ========== Guest Only ==========
+// Route yang HANYA bisa diakses saat pengguna BELUM login (guest).
+Route::middleware('guest')->group(function () {
+    Route::get('/login', Login::class)->name('login'); // Halaman Login
+});
+
+// ========== Authenticated ==========
+// Route yang HANYA bisa diakses SETELAH pengguna berhasil login (auth).
 Route::middleware('auth')->group(function () {
-    Route::get('/dashboard', Dashboard::class)->name('dashboard');
 
-    Route::get('/projects', ProjectStudio::class)->name('projects')->middleware('admin_or_pm');
+    // Halaman Dashboard utama (Dapat diakses oleh semua role)
+    Route::get('/dashboard', \App\Livewire\Dashboard::class)->name('dashboard');
 
-    Route::get('/tasks', KanbanBoard::class)->name('tasks');
+    // Project Studio — admin & project_manager (Fase 4)
+    Route::get('/projects', \App\Livewire\ProjectStudio::class)
+        ->middleware('admin_or_pm')
+        ->name('projects');
 
-    Route::get('/timelogs', Dashboard::class)->name('timelogs');
+    // Kanban Board — semua role (Fase 5)
+    Route::get('/tasks', \App\Livewire\KanbanBoard::class)->name('tasks');
 
-    Route::get('/timesheet', PersonalTimesheet::class)->name('timesheet');
 
-    Route::get('/users', UserManagement::class)->name('users')->middleware('admin_only');
+    // Timesheet — semua role
+    Route::get('/timesheet', \App\Livewire\PersonalTimesheet::class)->name('timesheet');
 
+    // Halaman Manajemen Pengguna — Dibatasi hanya untuk Admin
+    Route::get('/users', \App\Livewire\UserManagement::class)
+        ->middleware('admin_only')
+        ->name('users');
+
+    // Logout
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
-
-require __DIR__.'/settings.php';

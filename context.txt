@@ -1,0 +1,46 @@
+# Project Context
+
+## Project Name & Purpose
+**TaskSync Dashboard** (inferred from directory and environment variables). It is a project management and task synchronization system designed to manage team projects, track tasks via a Kanban board, log employee work hours (timesheets), and provide role-based access for admins, project managers, and team members.
+
+## Auth System
+- **Mechanism**: Utilizes Laravel's default session-based authentication (`web` guard) with the Eloquent `users` provider for web routes. Additionally, it uses Laravel Sanctum (`auth:sanctum`) for API endpoint authentication.
+- **Roles**: Implemented via a `role` column on the `users` table. The application specifically checks for `admin` and `pm` (Project Manager) roles.
+- **Custom Middleware**:
+  - `EnsureIsAdmin.php` (alias: `admin_only`): Restricts access to users where `role === 'admin'`.
+  - `EnsureIsAdminOrPM.php` (alias: `admin_or_pm`): Restricts access to users where `role === 'admin'` or `role === 'pm'`.
+
+## Tech Stack
+- **Framework**: Laravel `^13.8` (Note: This is written in `composer.json`, though it may be a typo for `11.8` given current Laravel versions), PHP `^8.3`.
+- **Frontend**: Livewire `^4.3` combined with Tailwind CSS `^4.0.0` (compiled via Vite). The frontend is a TALL-stack-like setup (Tailwind, Alpine?, Laravel, Livewire) without a decoupled JS framework like Vue or React.
+- **Database**: SQLite is the default driver specified in `.env.example`.
+- **Additional Packages**: `barryvdh/laravel-dompdf` (PDF generation) and `maatwebsite/excel` (Excel exports).
+
+## Database Summary
+- `users`: Core table containing user credentials, `role`, and an `is_active` boolean.
+- `team_projects`: Stores projects with attributes like `budget`, `client_name`, `start_date`, `deadline`, `status` (planning, active, on_hold, completed, cancelled), `priority`, and a `created_by` foreign key to `users`.
+- `tasks`: Belongs to a project (`project_id`). Contains `assignee_id` (users), `title`, `description`, `priority`, `start_date`, `due_date`, `progress_percent`, `status` (todo, in_progress, review, done), and `completed_at`.
+- `time_logs`: Records time worked by a `user_id` on a `project_id` and optionally a `task_id`. Tracks `start_time`, `end_time`, `duration_hours`, and an approval `status` (pending, approved, rejected) along with `reviewed_by`.
+- `task_comments`: Stores comments made by users on specific tasks.
+- `personal_access_tokens`: Default Sanctum table for API tokens.
+
+## Core Features
+Based on routes and Livewire components:
+- **Dashboard**: Central overview (`\App\Livewire\Dashboard::class`), accessible to all authenticated users.
+- **Project Studio**: Project management interface (`\App\Livewire\ProjectStudio::class`), restricted to Admins and PMs.
+- **Kanban Board**: Visual task management board (`\App\Livewire\KanbanBoard::class`), accessible to all roles.
+- **Personal Timesheet**: Interface for logging work hours (`\App\Livewire\PersonalTimesheet::class`).
+- **User Management**: Admin-only interface for managing users (`\App\Livewire\UserManagement::class`).
+- **API Endpoints**: 
+  - `/api/public/stats`: Returns live data (active projects, completed projects, logged hours this week) for a public Landing Page.
+  - `/api/contact`: Receives contact form submissions.
+  - `/api/user`: Protected endpoint to fetch the authenticated user's data.
+
+## Anything Unusual or Worth Noting
+- **Livewire-Only Routing**: The application relies entirely on Livewire components for its web frontend routing. There are no traditional controllers in `app/Http/Controllers` except for `AuthController` and the base `Controller`.
+- **Laravel Version Anomaly**: The `composer.json` file lists `"laravel/framework": "^13.8"`, which is highly unusual and likely a typo by the developer (since the current Laravel version timeline doesn't align with v13 yet).
+- **Minimal Testing**: The `tests/Feature` and `tests/Unit` directories currently lack comprehensive tests for the auth flows or API endpoints (only a default `ExampleTest.php` exists).
+- **Public API for Landing Page**: The main dashboard app explicitly exposes data via a public API (`/api/public/stats`) to feed an external Landing Page.
+
+## Generated At
+2026-07-03 (package.json)

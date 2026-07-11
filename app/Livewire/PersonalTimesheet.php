@@ -2,157 +2,108 @@
 
 namespace App\Livewire;
 
-use App\Exports\TimeLogsExport;
 use App\Models\TimeLog;
-use App\Models\User;
-use Illuminate\Contracts\View\View;
-use Illuminate\Pagination\LengthAwarePaginator;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Livewire\Attributes\Layout;
-use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Maatwebsite\Excel\Facades\Excel;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
-#[Title('Personal Timesheet')]
-#[Layout('layouts.app', ['title' => 'Personal Timesheet'])]
+/**
+ * Livewire Component: PersonalTimesheet
+ * 
+ * Menampilkan catatan waktu (time logs) khusus untuk pengguna yang sedang login.
+ * Memiliki fitur filter berdasarkan rentang tanggal dan export PDF khusus untuk diri sendiri.
+ */
+#[Layout('components.layouts.app')]
 class PersonalTimesheet extends Component
 {
     use WithPagination;
 
     public string $filterStart = '';
-
     public string $filterEnd = '';
 
     public function mount(): void
     {
+        $this->title = 'Personal Timesheet';
         $this->filterStart = now()->subDays(30)->format('Y-m-d');
         $this->filterEnd = now()->format('Y-m-d');
     }
 
-    // ---------------------------------------------------------------------------
-    // Typed auth helper
-    // ---------------------------------------------------------------------------
-
-    private function currentUser(): User
+    /**
+     * Ekspor catatan waktu pribadi pengguna ke format PDF.
+     */
+    public function exportPdf()
     {
-        $user = Auth::user();
+        $query = TimeLog::with(['project', 'task', 'user'])
+            ->where('user_id', Auth::id());
 
-        assert($user instanceof User);
+        if ($this->filterStart) {
+            $query->whereDate('start_time', '>=', $this->filterStart);
+        }
+        if ($this->filterEnd) {
+            $query->whereDate('start_time', '<=', $this->filterEnd);
+        }
 
-        return $user;
+        $logs = $query->orderBy('start_time', 'desc')->get();
+
+        if ($logs->isEmpty()) {
+            session()->flash('info', 'Tidak ada data untuk diekspor dengan filter ini.');
+            return null;
+        }
+
+        $pdf = Pdf::loadView('exports.time-logs', ['logs' => $logs]);
+        $filename = 'timesheet_' . str_replace(' ', '_', strtolower(Auth::user()->name)) . '_' . now()->format('Y-m-d') . '.pdf';
+        
+        return response()->streamDownload(function () use ($pdf) {
+            echo $pdf->stream();
+        }, $filename);
     }
 
-    // ---------------------------------------------------------------------------
-    // Summary: total approved hours this week
-    // ---------------------------------------------------------------------------
-
-    public function getWeekHoursProperty(): float
+    /**
+     * Computed Property: Menghitung total jam kerja dalam minggu dan bulan ini.
+     * Hanya menghitung log yang statusnya 'approved'.
+     */
+    public function getSummaryProperty()
     {
+        $userId = Auth::id();
+        
         $weekStart = now()->startOfWeek()->format('Y-m-d');
-
-        return (float) TimeLog::where('user_id', Auth::id())
+        $weekHours = TimeLog::where('user_id', $userId)
             ->where('status', 'approved')
             ->whereDate('start_time', '>=', $weekStart)
             ->sum('duration_hours');
-    }
 
-    // ---------------------------------------------------------------------------
-    // Summary: total approved hours this month
-    // ---------------------------------------------------------------------------
-
-    public function getMonthHoursProperty(): float
-    {
         $monthStart = now()->startOfMonth()->format('Y-m-d');
-
-        return (float) TimeLog::where('user_id', Auth::id())
+        $monthHours = TimeLog::where('user_id', $userId)
             ->where('status', 'approved')
             ->whereDate('start_time', '>=', $monthStart)
             ->sum('duration_hours');
-    }
 
-    // ---------------------------------------------------------------------------
-    // Paginated time logs with filters
-    // ---------------------------------------------------------------------------
-
-    public function getTimeLogsProperty(): LengthAwarePaginator
-    {
-        return TimeLog::with(['project', 'task'])
-            ->where('user_id', Auth::id())
-            ->when($this->filterStart, fn ($q) => $q->whereDate('start_time', '>=', $this->filterStart))
-            ->when($this->filterEnd, fn ($q) => $q->whereDate('start_time', '<=', $this->filterEnd))
-            ->orderBy('start_time', 'desc')
-            ->paginate(20);
-    }
-
-    // ---------------------------------------------------------------------------
-    // Reset pagination on filter change
-    // ---------------------------------------------------------------------------
-
-    public function updatedFilterStart(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatedFilterEnd(): void
-    {
-        $this->resetPage();
-    }
-
-    // ---------------------------------------------------------------------------
-    // Export
-    // ---------------------------------------------------------------------------
-
-    public function exportCsv(): ?BinaryFileResponse
-    {
-        $filters = $this->buildExportFilters();
-        $export = new TimeLogsExport($filters, Auth::id());
-
-        if ($export->query()->count() === 0) {
-            session()->flash('info', 'Tidak ada data untuk diekspor dengan filter ini.');
-
-            return null;
-        }
-
-        $filename = 'timesheet_'.str_replace(' ', '_', $this->currentUser()->name).'_'.now()->format('Y-m-d').'.csv';
-
-        return Excel::download($export, $filename, \Maatwebsite\Excel\Excel::CSV);
-    }
-
-    public function exportExcel(): ?BinaryFileResponse
-    {
-        $filters = $this->buildExportFilters();
-        $export = new TimeLogsExport($filters, Auth::id());
-
-        if ($export->query()->count() === 0) {
-            session()->flash('info', 'Tidak ada data untuk diekspor dengan filter ini.');
-
-            return null;
-        }
-
-        $filename = 'timesheet_'.str_replace(' ', '_', $this->currentUser()->name).'_'.now()->format('Y-m-d').'.xlsx';
-
-        return Excel::download($export, $filename);
-    }
-
-    /** @return array{start: string, end: string, project_id: string, status: string} */
-    private function buildExportFilters(): array
-    {
         return [
-            'start' => $this->filterStart,
-            'end' => $this->filterEnd,
-            'project_id' => '',
-            'status' => '',
+            'weekHours' => $weekHours,
+            'monthHours' => $monthHours,
         ];
     }
 
-    public function render(): View
+    public function render()
     {
+        $query = TimeLog::with(['project', 'task'])
+            ->where('user_id', Auth::id());
+
+        if ($this->filterStart) {
+            $query->whereDate('start_time', '>=', $this->filterStart);
+        }
+        if ($this->filterEnd) {
+            $query->whereDate('start_time', '<=', $this->filterEnd);
+        }
+
+        $query->orderBy('start_time', 'desc');
+
         return view('livewire.personal-timesheet', [
-            'weekHours' => $this->weekHours,
-            'monthHours' => $this->monthHours,
-            'timeLogs' => $this->timeLogs,
-        ]);
+            'timeLogs' => $query->paginate(20),
+            'summary' => $this->summary,
+        ])->title('Personal Timesheet');
     }
 }

@@ -6,16 +6,21 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * Class EnsureIsAdmin
+ * 
+ * Middleware untuk membatasi akses route hanya kepada pengguna
+ * dengan role 'admin'. Pengguna lain akan diarahkan kembali ke dashboard
+ * dengan pesan error.
+ */
 class EnsureIsAdmin
 {
     /**
-     * Handle an incoming request.
-     *
-     * @param  Closure(Request): (Response)  $next
+     * Izinkan akses hanya untuk role admin.
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (auth()->check() && auth()->user()->role === 'admin') {
+        if (auth()->user()->role === 'admin') {
             return $next($request);
         }
 

@@ -2,70 +2,59 @@
 
 namespace App\Livewire\Auth;
 
-use App\Models\User;
-use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
-use Livewire\Attributes\Title;
 use Livewire\Component;
 
-#[Title('Log in')]
+/**
+ * Livewire Component: Login
+ * 
+ * Menangani logika halaman login otentikasi.
+ * Menggunakan kredensial email dan password serta memverifikasi 
+ * apakah akun dalam status aktif (is_active).
+ */
 class Login extends Component
 {
-    /**
-     * The email input field.
-     */
     public string $email = '';
-
-    /**
-     * The password input field.
-     */
     public string $password = '';
 
     /**
-     * Validation rules for the component.
-     *
-     * @var array<string, string>
+     * Mengeksekusi proses login ketika form disubmit.
      */
-    protected array $rules = [
-        'email' => 'required|email',
-        'password' => 'required|min:6',
-    ];
-
-    /**
-     * Authenticate the user.
-     */
-    public function login(): mixed
+    public function login(): void
     {
-        $this->validate();
+        $this->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required', 'min:6'],
+        ], [
+            'email.required' => 'Email wajib diisi.',
+            'email.email' => 'Format email tidak valid.',
+            'password.required' => 'Password wajib diisi.',
+            'password.min' => 'Password minimal 6 karakter.',
+        ]);
 
-        $user = User::where('email', $this->email)->first();
-
-        // Check if user exists, password matches, but account is inactive
-        if ($user && Hash::check($this->password, $user->password) && ! $user->is_active) {
-            $this->addError('email', 'Akun Anda telah dinonaktifkan. Hubungi administrator.');
-
-            return null;
-        }
-
-        // Attempt login using session-based authentication
+        // Cek credentials + is_active sekaligus
         if (Auth::attempt(['email' => $this->email, 'password' => $this->password, 'is_active' => true])) {
             session()->regenerate();
-
-            return redirect()->route('dashboard');
+            $this->redirect(route('dashboard'));
+            return;
         }
 
-        // Standard authentication failure
-        $this->addError('email', 'Email atau password salah.');
+        // Jika gagal, cek apakah user ada tapi is_active = false
+        $user = \App\Models\User::where('email', $this->email)->first();
 
-        return null;
+        if ($user && !$user->is_active) {
+            $this->addError('email', 'Akun Anda telah dinonaktifkan. Hubungi administrator.');
+            return;
+        }
+
+        // Credentials salah (email atau password tidak cocok)
+        $this->addError('email', 'Email atau password salah.');
     }
 
-    /**
-     * Render the component view.
-     */
-    public function render(): View
+    public function render()
     {
-        return view('auth.login')->layout('layouts.auth');
+        return view('livewire.auth.login')
+            ->layout('layouts.guest')
+            ->title('Login');
     }
 }

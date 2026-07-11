@@ -2,36 +2,34 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 /**
- * @property int $id
- * @property int $task_id
- * @property int $user_id
- * @property string $comment
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * Class TaskComment
+ * 
+ * Model untuk merepresentasikan tabel task_comments.
+ * Menyimpan data komentar atau pesan diskusi pada suatu tugas.
  */
 class TaskComment extends Model
 {
-    use HasFactory;
+    protected $guarded = [];
 
-    protected $fillable = [
-        'task_id',
-        'user_id',
-        'comment',
-    ];
-
+    /**
+     * Relasi ke model Task.
+     * Komentar terikat pada satu tugas.
+     */
     public function task(): BelongsTo
     {
-        return $this->belongsTo(Task::class, 'task_id');
+        return $this->belongsTo(Task::class);
     }
 
+    /**
+     * Relasi ke model User.
+     * Mengetahui siapa penulis/pengguna yang membuat komentar tersebut.
+     */
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class);
     }
 }

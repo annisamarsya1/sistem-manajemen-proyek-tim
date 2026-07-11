@@ -1,30 +1,55 @@
-/.phpunit.cache
-/node_modules
+# Dependencies
+/vendor/
+/node_modules/
+
+# Public
 /public/build
-/public/fonts-manifest.dev.json
 /public/hot
 /public/storage
-/storage/*.key
-/storage/pail
-/vendor
+/public/fonts-manifest.dev.json
+
+# Environment
 .env
 .env.backup
 .env.production
-.phpactor.json
+.env.local
+
+# Storage and Logs
+/storage/*.key
+/storage/pail
+*.log
+
+# Testing
 .phpunit.result.cache
+/.phpunit.cache
+phpunit.xml.user
+
+# Local Databases
+/database/*.sqlite
+/database/*.sqlite-journal
+
+# Developer Tools
 Homestead.json
 Homestead.yaml
-npm-debug.log
-yarn-error.log
-/auth.json
-/.fleet
-/.idea
-/.nova
-/.vscode
-/.zed
-.agents/
-.kiro/
-.cursor/
-boost.json
-PRD.MD
-.agents/
+auth.json
+.phpactor.json
+_ide_helper.php
+_ide_helper_models.php
+.phpstorm.meta.php
+
+# IDEs and Editors
+/.idea/
+/.vscode/
+/.nova/
+/.zed/
+/.cursor/
+/.codex/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

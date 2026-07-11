@@ -2,354 +2,248 @@
 
 namespace App\Livewire;
 
-use App\Exports\TimeLogsExport;
 use App\Models\TeamProject;
 use App\Models\TimeLog;
 use App\Models\User;
-use Illuminate\Contracts\View\View;
-use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Collection;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
-use Livewire\Attributes\Layout;
-use Livewire\Attributes\Title;
+use Illuminate\Support\Facades\DB;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Maatwebsite\Excel\Facades\Excel;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Livewire\Attributes\Layout;
 
-#[Title('Dashboard')]
-#[Layout('layouts.app', ['title' => 'Dashboard'])]
+/**
+ * Livewire Component: Dashboard
+ * 
+ * Merupakan halaman utama setelah pengguna berhasil login.
+ * Menampilkan ringkasan statistik (analytics), tabel time logs terkini, 
+ * fitur persetujuan (approve/reject) untuk log waktu (bagi Admin/PM),
+ * serta fitur export ke PDF.
+ */
+#[Layout('components.layouts.app')]
 class Dashboard extends Component
 {
     use WithPagination;
 
     public string $filterDateStart = '';
-
     public string $filterDateEnd = '';
-
     public string $filterProjectId = '';
-
     public string $filterStatus = '';
 
-    /** @var Collection<int, TeamProject> */
-    public Collection $projects;
-
-    public function mount(): void
+    public function mount()
     {
-        $this->projects = $this->loadProjectsForFilter();
+        $this->title = 'Dashboard';
     }
 
-    // ---------------------------------------------------------------------------
-    // Typed auth helper
-    // ---------------------------------------------------------------------------
-
-    private function currentUser(): User
+    /**
+     * Menyetujui (Approve) catatan waktu kerja karyawan.
+     * Hanya bisa diakses oleh Admin atau PM.
+     */
+    public function approveLog(int $id): void
     {
         $user = Auth::user();
-
-        assert($user instanceof User);
-
-        return $user;
-    }
-
-    // ---------------------------------------------------------------------------
-    // Filter projects dropdown
-    // ---------------------------------------------------------------------------
-
-    /** @return Collection<int, TeamProject> */
-    private function loadProjectsForFilter(): Collection
-    {
-        $user = $this->currentUser();
-
         if ($user->role === 'employee') {
-            $projectIds = TimeLog::where('user_id', $user->id)
-                ->distinct()
-                ->pluck('project_id');
-
-            return TeamProject::whereIn('id', $projectIds)
-                ->orderBy('title')
-                ->get(['id', 'title']);
+            abort(403, 'Akses ditolak.');
         }
 
-        return TeamProject::orderBy('title')->get(['id', 'title']);
+        $log = TimeLog::findOrFail($id);
+        if ($log->status === 'pending') {
+            $log->update([
+                'status' => 'approved',
+                'reviewed_by' => $user->id,
+                'reviewed_at' => now(),
+            ]);
+            session()->flash('success', 'Time log disetujui.');
+        }
     }
 
-    // ---------------------------------------------------------------------------
-    // Analytics: Total Logged Hours (minggu berjalan, approved + pending)
-    // ---------------------------------------------------------------------------
-
-    public function getTotalLoggedHoursProperty(): float
+    /**
+     * Menolak (Reject) catatan waktu kerja karyawan.
+     * Hanya bisa diakses oleh Admin atau PM.
+     */
+    public function rejectLog(int $id): void
     {
-        $user = $this->currentUser();
-        $weekStart = Carbon::now()->startOfWeek();
-        $today = Carbon::today()->endOfDay();
-
-        $query = TimeLog::whereBetween('start_time', [$weekStart, $today])
-            ->whereIn('status', ['approved', 'pending']);
-
+        $user = Auth::user();
         if ($user->role === 'employee') {
-            $query->where('user_id', $user->id);
+            abort(403, 'Akses ditolak.');
         }
 
-        return (float) $query->sum('duration_hours');
+        $log = TimeLog::findOrFail($id);
+        if ($log->status === 'pending') {
+            $log->update([
+                'status' => 'rejected',
+                'reviewed_by' => $user->id,
+                'reviewed_at' => now(),
+            ]);
+            session()->flash('error', 'Time log ditolak.');
+        }
     }
 
-    // ---------------------------------------------------------------------------
-    // Analytics: Met Target (approved hours hari ini >= 8 jam)
-    // ---------------------------------------------------------------------------
-
-    public function getMetTargetCountProperty(): int|string
+    /**
+     * Mengekspor data catatan waktu ke format PDF menggunakan domPDF.
+     * Menggunakan filter yang sedang aktif.
+     */
+    public function exportPdf()
     {
-        $user = $this->currentUser();
-        $today = Carbon::today();
-
+        $user = Auth::user();
         if ($user->role === 'employee') {
-            $hours = TimeLog::where('user_id', $user->id)
-                ->whereDate('start_time', $today)
-                ->where('status', 'approved')
-                ->sum('duration_hours');
-
-            return $hours >= 8
-                ? 'Anda memenuhi target hari ini'
-                : 'Anda belum memenuhi target';
+            session()->flash('error', 'Anda tidak memiliki akses untuk mengekspor data.');
+            return null;
         }
 
-        // Admin / PM: count distinct users who logged >= 8 approved hours today
-        $metUserIds = TimeLog::whereDate('start_time', $today)
-            ->where('status', 'approved')
-            ->selectRaw('user_id, SUM(duration_hours) as total_hours')
-            ->groupBy('user_id')
-            ->havingRaw('total_hours >= 8')
-            ->pluck('user_id');
+        $query = TimeLog::with(['user', 'project', 'task']);
 
-        return $metUserIds->count();
-    }
-
-    // ---------------------------------------------------------------------------
-    // Analytics: Under Target
-    // ---------------------------------------------------------------------------
-
-    public function getUnderTargetCountProperty(): int|string
-    {
-        $user = $this->currentUser();
-        $today = Carbon::today();
-
-        if ($user->role === 'employee') {
-            $hours = TimeLog::where('user_id', $user->id)
-                ->whereDate('start_time', $today)
-                ->where('status', 'approved')
-                ->sum('duration_hours');
-
-            return $hours < 8
-                ? 'Anda belum memenuhi target hari ini'
-                : 'Anda sudah memenuhi target';
+        if ($this->filterDateStart) {
+            $query->whereDate('start_time', '>=', $this->filterDateStart);
         }
-
-        $metUserIds = TimeLog::whereDate('start_time', $today)
-            ->where('status', 'approved')
-            ->selectRaw('user_id, SUM(duration_hours) as total_hours')
-            ->groupBy('user_id')
-            ->havingRaw('total_hours >= 8')
-            ->pluck('user_id');
-
-        $allActiveUserCount = User::where('is_active', true)->count();
-
-        return max(0, $allActiveUserCount - $metUserIds->count());
-    }
-
-    // ---------------------------------------------------------------------------
-    // Today's Snapshot (Admin / PM only)
-    // ---------------------------------------------------------------------------
-
-    /** @return Collection<int, TimeLog> */
-    public function getTodaySnapshotProperty(): Collection
-    {
-        if ($this->currentUser()->role === 'employee') {
-            return collect();
+        if ($this->filterDateEnd) {
+            $query->whereDate('start_time', '<=', $this->filterDateEnd);
         }
-
-        return TimeLog::with(['user', 'project', 'task'])
-            ->whereDate('start_time', Carbon::today())
-            ->orderByDesc('start_time')
-            ->get();
-    }
-
-    // ---------------------------------------------------------------------------
-    // Time Logs Table with filters
-    // ---------------------------------------------------------------------------
-
-    public function getTimeLogsProperty(): LengthAwarePaginator
-    {
-        $user = $this->currentUser();
-
-        $query = TimeLog::with(['user', 'project', 'task'])
-            ->orderByDesc('start_time');
-
-        if ($user->role === 'employee') {
-            $query->where('user_id', $user->id);
-        }
-
-        if ($this->filterDateStart !== '') {
-            $query->where('start_time', '>=', Carbon::parse($this->filterDateStart)->startOfDay());
-        }
-
-        if ($this->filterDateEnd !== '') {
-            $query->where('start_time', '<=', Carbon::parse($this->filterDateEnd)->endOfDay());
-        }
-
-        if ($this->filterProjectId !== '') {
+        if ($this->filterProjectId) {
             $query->where('project_id', $this->filterProjectId);
         }
-
-        if ($this->filterStatus !== '') {
+        if ($this->filterStatus) {
             $query->where('status', $this->filterStatus);
         }
 
-        return $query->paginate(20);
-    }
+        $logs = $query->orderBy('start_time', 'desc')->get();
 
-    // ---------------------------------------------------------------------------
-    // Actions: Approve / Reject
-    // ---------------------------------------------------------------------------
-
-    public function approveLog(int $id): void
-    {
-        $user = $this->currentUser();
-
-        if (! in_array($user->role, ['admin', 'project_manager'])) {
-            abort(403, 'Anda tidak memiliki akses untuk menyetujui time log.');
-        }
-
-        $log = TimeLog::findOrFail($id);
-
-        if ($log->status !== 'pending') {
-            session()->flash('error', 'Log ini sudah diproses sebelumnya.');
-
-            return;
-        }
-
-        $log->update([
-            'status' => 'approved',
-            'reviewed_by' => $user->id,
-            'reviewed_at' => now(),
-        ]);
-
-        session()->flash('success', 'Time log disetujui.');
-    }
-
-    public function rejectLog(int $id): void
-    {
-        $user = $this->currentUser();
-
-        if (! in_array($user->role, ['admin', 'project_manager'])) {
-            abort(403, 'Anda tidak memiliki akses untuk menolak time log.');
-        }
-
-        $log = TimeLog::findOrFail($id);
-
-        if ($log->status !== 'pending') {
-            session()->flash('error', 'Log ini sudah diproses sebelumnya.');
-
-            return;
-        }
-
-        $log->update([
-            'status' => 'rejected',
-            'reviewed_by' => $user->id,
-            'reviewed_at' => now(),
-        ]);
-
-        session()->flash('error', 'Time log ditolak.');
-    }
-
-    // ---------------------------------------------------------------------------
-    // Export
-    // ---------------------------------------------------------------------------
-
-    public function exportCsv(): ?BinaryFileResponse
-    {
-        if (! in_array($this->currentUser()->role, ['admin', 'project_manager'])) {
-            abort(403);
-        }
-
-        $filters = $this->buildExportFilters();
-        $export = new TimeLogsExport($filters);
-
-        if ($export->query()->count() === 0) {
+        if ($logs->isEmpty()) {
             session()->flash('info', 'Tidak ada data untuk diekspor dengan filter ini.');
-
             return null;
         }
 
-        $filename = 'time_logs_'.now()->format('Y-m-d').'.csv';
-
-        return Excel::download($export, $filename, \Maatwebsite\Excel\Excel::CSV);
+        $pdf = Pdf::loadView('exports.time-logs', ['logs' => $logs]);
+        $filename = 'time_logs_' . now()->format('Y-m-d') . '.pdf';
+        
+        return response()->streamDownload(function () use ($pdf) {
+            echo $pdf->stream();
+        }, $filename);
     }
 
-    public function exportExcel(): ?BinaryFileResponse
+
+    /**
+     * Mendapatkan data analitik (total jam kerja, karyawan memenuhi target, dll).
+     * Dihitung secara dinamis berdasarkan role pengguna (Admin/PM vs Employee).
+     */
+    public function getAnalyticsProperty()
     {
-        if (! in_array($this->currentUser()->role, ['admin', 'project_manager'])) {
-            abort(403);
+        $user = Auth::user();
+        $startOfWeek = now()->startOfWeek(Carbon::MONDAY)->startOfDay();
+        $endOfWeek = now()->endOfDay(); // or endOfWeek
+
+        $totalHours = 0;
+        $targetHoursStr = "40 jam/minggu";
+        $metTarget = "";
+        $underTarget = "";
+
+        if ($user->role === 'admin' || $user->role === 'project_manager') {
+            $totalHours = TimeLog::where('start_time', '>=', $startOfWeek)
+                ->where('start_time', '<=', $endOfWeek)
+                ->whereIn('status', ['approved', 'pending'])
+                ->sum('duration_hours');
+
+            // Count distinct users meeting/under target today
+            $today = today()->toDateString();
+            $userStats = TimeLog::select('user_id', DB::raw('SUM(duration_hours) as total_hours'))
+                ->whereDate('start_time', $today)
+                ->where('status', 'approved')
+                ->groupBy('user_id')
+                ->get();
+
+            $metCount = $userStats->where('total_hours', '>=', 8)->count();
+            // Total active users minus metCount could be underTarget, or just those who logged something < 8.
+            // Let's count those who logged < 8
+            $underCount = $userStats->where('total_hours', '<', 8)->count();
+            
+            // To be more accurate for "Under Target" as all users not meeting it:
+            $totalActiveUsers = User::where('is_active', true)->where('role', 'employee')->count();
+            $underTargetCount = max(0, $totalActiveUsers - $metCount); // assuming everyone should meet 8h
+
+            $metTarget = $metCount . " Karyawan";
+            $underTarget = $underTargetCount . " Karyawan";
+
+        } else {
+            $totalHours = TimeLog::where('user_id', $user->id)
+                ->where('start_time', '>=', $startOfWeek)
+                ->where('start_time', '<=', $endOfWeek)
+                ->sum('duration_hours'); // any status or only approved+pending? 
+
+            $today = today()->toDateString();
+            $todayHours = TimeLog::where('user_id', $user->id)
+                ->whereDate('start_time', $today)
+                ->where('status', 'approved')
+                ->sum('duration_hours');
+
+            if ($todayHours >= 8) {
+                $metTarget = "Anda memenuhi target hari ini";
+                $underTarget = "-";
+            } else {
+                $metTarget = "-";
+                $underTarget = "Anda belum memenuhi target";
+            }
         }
 
-        $filters = $this->buildExportFilters();
-        $export = new TimeLogsExport($filters);
-
-        if ($export->query()->count() === 0) {
-            session()->flash('info', 'Tidak ada data untuk diekspor dengan filter ini.');
-
-            return null;
-        }
-
-        $filename = 'time_logs_'.now()->format('Y-m-d').'.xlsx';
-
-        return Excel::download($export, $filename);
-    }
-
-    /** @return array{start: string, end: string, project_id: string, status: string} */
-    private function buildExportFilters(): array
-    {
         return [
-            'start' => $this->filterDateStart,
-            'end' => $this->filterDateEnd,
-            'project_id' => $this->filterProjectId,
-            'status' => $this->filterStatus,
+            'totalHours' => $totalHours,
+            'targetHours' => $targetHoursStr,
+            'metTarget' => $metTarget,
+            'underTarget' => $underTarget,
         ];
     }
 
-    // ---------------------------------------------------------------------------
-    // Reset pagination on filter change
-    // ---------------------------------------------------------------------------
-
-    public function updatedFilterDateStart(): void
+    public function getSnapshotProperty()
     {
-        $this->resetPage();
+        if (Auth::user()->role === 'employee') {
+            return collect();
+        }
+        return TimeLog::with(['user', 'project', 'task'])
+            ->whereDate('start_time', today()->toDateString())
+            ->get();
     }
 
-    public function updatedFilterDateEnd(): void
+    public function getProjectsProperty()
     {
-        $this->resetPage();
+        $user = Auth::user();
+        if ($user->role === 'admin' || $user->role === 'project_manager') {
+            return TeamProject::all();
+        }
+
+        $projectIds = TimeLog::where('user_id', $user->id)->pluck('project_id')->unique();
+        return TeamProject::whereIn('id', $projectIds)->get();
     }
 
-    public function updatedFilterProjectId(): void
+    public function render()
     {
-        $this->resetPage();
-    }
+        $user = Auth::user();
+        
+        $query = TimeLog::with(['user', 'project', 'task']);
 
-    public function updatedFilterStatus(): void
-    {
-        $this->resetPage();
-    }
+        if ($user->role === 'employee') {
+            $query->where('user_id', $user->id);
+        }
 
-    public function render(): View
-    {
+        if ($this->filterDateStart) {
+            $query->whereDate('start_time', '>=', $this->filterDateStart);
+        }
+        if ($this->filterDateEnd) {
+            $query->whereDate('start_time', '<=', $this->filterDateEnd);
+        }
+        if ($this->filterProjectId) {
+            $query->where('project_id', $this->filterProjectId);
+        }
+        if ($this->filterStatus) {
+            $query->where('status', $this->filterStatus);
+        }
+
+        $query->orderBy('start_time', 'desc');
+
         return view('livewire.dashboard', [
-            'totalLoggedHours' => $this->totalLoggedHours,
-            'metTargetCount' => $this->metTargetCount,
-            'underTargetCount' => $this->underTargetCount,
-            'todaySnapshot' => $this->todaySnapshot,
-            'timeLogs' => $this->timeLogs,
-        ]);
+            'timeLogs' => $query->paginate(20),
+            'analytics' => $this->analytics,
+            'snapshot' => $this->snapshot,
+            'projects' => $this->projects,
+        ])->title('Dashboard');
     }
 }

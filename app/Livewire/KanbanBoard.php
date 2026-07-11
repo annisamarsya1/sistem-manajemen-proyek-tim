@@ -6,143 +6,75 @@ use App\Models\Task;
 use App\Models\TaskComment;
 use App\Models\TeamProject;
 use App\Models\User;
-use Illuminate\Contracts\View\View;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
-use Livewire\Attributes\Title;
 use Livewire\Component;
 
-#[Title('Kanban Board')]
-#[Layout('layouts.app', ['title' => 'Kanban Board'])]
+/**
+ * Livewire Component: KanbanBoard
+ * 
+ * Mengelola antarmuka drag-and-drop atau perpindahan status untuk Tugas (Tasks).
+ * Memiliki fitur pemisahan tugas berdasarkan status (todo, in_progress, review, done),
+ * filter per proyek, pembuatan tugas baru, komentar diskusi tugas, dan update status realtime.
+ */
+#[Layout('components.layouts.app')]
 class KanbanBoard extends Component
 {
-    // ---------------------------------------------------------------------------
-    // Filter
-    // ---------------------------------------------------------------------------
-
     public string $filterProjectId = '';
-
-    // ---------------------------------------------------------------------------
-    // Task Form (Create / Edit)
-    // ---------------------------------------------------------------------------
-
-    public string $taskTitle = '';
-
-    public string $taskDescription = '';
-
-    public string $taskProjectId = '';
-
-    public string $taskAssigneeId = '';
-
-    public string $taskPriority = 'medium';
-
-    public string $taskStartDate = '';
-
-    public string $taskDueDate = '';
-
-    public string $taskStatus = 'todo';
-
-    public int $taskProgressPercent = 0;
-
+    
+    // Properties for creating/editing a task
+    public bool $showTaskModal = false;
     public ?int $editingTaskId = null;
+    
+    public string $taskTitle = '';
+    public string $taskDescription = '';
+    public string $taskProjectId = '';
+    public string $taskAssigneeId = '';
+    public string $taskPriority = 'medium';
+    public string $taskStartDate = '';
+    public string $taskDueDate = '';
+    public string $taskStatus = 'todo';
+    public string $taskProgress = '0';
+    
+    public $employees = [];
 
-    // ---------------------------------------------------------------------------
-    // Task Detail / Comments
-    // ---------------------------------------------------------------------------
-
+    // Properties for task detail & comments
+    public bool $showDetailModal = false;
     public ?int $selectedTaskId = null;
-
     public string $newComment = '';
+    public $selectedTask = null;
 
-    // ---------------------------------------------------------------------------
-    // Shared data
-    // ---------------------------------------------------------------------------
-
-    /** @var Collection<int, User> */
-    public Collection $employees;
-
-    /** @var Collection<int, TeamProject> */
-    public Collection $projects;
-
-    // ---------------------------------------------------------------------------
-    // Boot
-    // ---------------------------------------------------------------------------
-
-    public function mount(): void
+    public function mount()
     {
-        $this->employees = User::where('role', 'employee')
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get(['id', 'name']);
-
-        $this->projects = $this->loadProjectsForFilter();
+        $this->title = 'Kanban Board';
+        $this->employees = User::where('role', 'employee')->where('is_active', true)->get();
     }
 
-    // ---------------------------------------------------------------------------
-    // Typed auth helper
-    // ---------------------------------------------------------------------------
-
-    private function currentUser(): User
+    public function getProjectsProperty()
     {
         $user = Auth::user();
-        assert($user instanceof User);
-
-        return $user;
-    }
-
-    private function isAdminOrPm(): bool
-    {
-        return in_array($this->currentUser()->role, ['admin', 'project_manager']);
-    }
-
-    // ---------------------------------------------------------------------------
-    // Projects dropdown
-    // ---------------------------------------------------------------------------
-
-    /** @return Collection<int, TeamProject> */
-    private function loadProjectsForFilter(): Collection
-    {
-        $user = $this->currentUser();
-
-        if ($user->role === 'employee') {
-            $projectIds = Task::where('assignee_id', $user->id)
-                ->distinct()
-                ->pluck('project_id');
-
-            return TeamProject::whereIn('id', $projectIds)
-                ->orderBy('title')
-                ->get(['id', 'title']);
+        if (in_array($user->role, ['admin', 'project_manager'])) {
+            return TeamProject::all();
         }
 
-        return TeamProject::orderBy('title')->get(['id', 'title']);
+        // For employee, fetch projects that have tasks assigned to them
+        $projectIds = Task::where('assignee_id', $user->id)->pluck('project_id')->unique();
+        return TeamProject::whereIn('id', $projectIds)->get();
     }
-
-    // ---------------------------------------------------------------------------
-    // Kanban data
-    // ---------------------------------------------------------------------------
 
     /**
-     * @return array<string, Collection<int, Task>>
+     * Computed Property: Mengelompokkan tugas berdasarkan kolom status.
+     * Menerapkan filter proyek yang sedang dipilih.
      */
-    public function getTasksByStatusProperty(): array
+    public function getTasksByStatusProperty()
     {
-        $user = $this->currentUser();
+        $query = Task::with(['project', 'assignee']);
 
-        $query = Task::with(['assignee:id,name', 'project:id,title'])
-            ->orderBy('priority', 'desc')
-            ->orderBy('due_date');
-
-        if ($user->role === 'employee') {
-            $query->where('assignee_id', $user->id);
-        }
-
-        if ($this->filterProjectId !== '') {
+        if ($this->filterProjectId) {
             $query->where('project_id', $this->filterProjectId);
         }
 
         $tasks = $query->get();
-
         $grouped = $tasks->groupBy('status');
 
         return [
@@ -153,23 +85,21 @@ class KanbanBoard extends Component
         ];
     }
 
-    // ---------------------------------------------------------------------------
-    // Drag-and-drop
-    // ---------------------------------------------------------------------------
-
+    /**
+     * Memperbarui status tugas (misal dipindah dari 'todo' ke 'in_progress').
+     * Memastikan hak akses, di mana karyawan hanya bisa memindah tugas mereka sendiri.
+     */
     public function updateTaskStatus(int $taskId, string $newStatus): void
     {
         $validStatuses = ['todo', 'in_progress', 'review', 'done'];
-
-        if (! in_array($newStatus, $validStatuses)) {
+        if (!in_array($newStatus, $validStatuses)) {
             return;
         }
 
         $task = Task::findOrFail($taskId);
 
-        if ($this->currentUser()->role === 'employee' && $task->assignee_id !== $this->currentUser()->id) {
+        if (Auth::user()->role === 'employee' && $task->assignee_id !== Auth::id()) {
             session()->flash('error', 'Anda hanya bisa memindahkan tugas milik Anda sendiri.');
-
             return;
         }
 
@@ -179,201 +109,151 @@ class KanbanBoard extends Component
         ]);
     }
 
-    // ---------------------------------------------------------------------------
-    // Create Task
-    // ---------------------------------------------------------------------------
-
-    public function openCreateModal(): void
+    public function createTask(): void
     {
-        if (! $this->isAdminOrPm()) {
-            abort(403);
-        }
-
+        $this->checkAdminOrPm();
         $this->resetTaskForm();
-        $this->editingTaskId = null;
-        $this->dispatch('open-task-modal');
+        $this->showTaskModal = true;
     }
-
-    public function saveTask(): void
-    {
-        if (! $this->isAdminOrPm()) {
-            abort(403);
-        }
-
-        $validated = $this->validate([
-            'taskTitle' => ['required', 'string', 'max:200'],
-            'taskDescription' => ['nullable', 'string'],
-            'taskProjectId' => ['required', 'exists:team_projects,id'],
-            'taskAssigneeId' => ['nullable', 'exists:users,id'],
-            'taskPriority' => ['required', 'in:low,medium,high'],
-            'taskStartDate' => ['nullable', 'date'],
-            'taskDueDate' => ['nullable', 'date', 'after_or_equal:taskStartDate'],
-        ]);
-
-        // Validate due_date is not before the project's start_date
-        if ($validated['taskDueDate'] !== null && $validated['taskDueDate'] !== '') {
-            $project = TeamProject::find($validated['taskProjectId']);
-
-            if ($project && $project->start_date && $validated['taskDueDate'] < $project->start_date->format('Y-m-d')) {
-                $this->addError('taskDueDate', 'Due date tidak boleh sebelum tanggal mulai proyek ('.$project->start_date->format('d/m/Y').').');
-
-                return;
-            }
-        }
-
-        Task::create([
-            'title' => $validated['taskTitle'],
-            'description' => $validated['taskDescription'] ?? null,
-            'project_id' => (int) $validated['taskProjectId'],
-            'assignee_id' => $validated['taskAssigneeId'] !== '' ? (int) $validated['taskAssigneeId'] : null,
-            'priority' => $validated['taskPriority'],
-            'start_date' => $validated['taskStartDate'] ?: null,
-            'due_date' => $validated['taskDueDate'] ?: null,
-            'status' => 'todo',
-            'progress_percent' => 0,
-        ]);
-
-        $this->resetTaskForm();
-        $this->dispatch('close-task-modal');
-        session()->flash('success', 'Tugas berhasil dibuat.');
-    }
-
-    // ---------------------------------------------------------------------------
-    // Edit Task
-    // ---------------------------------------------------------------------------
 
     public function editTask(int $id): void
     {
-        if (! $this->isAdminOrPm()) {
-            abort(403);
-        }
-
+        $this->checkAdminOrPm();
         $task = Task::findOrFail($id);
 
         $this->editingTaskId = $task->id;
         $this->taskTitle = $task->title;
         $this->taskDescription = $task->description ?? '';
-        $this->taskProjectId = (string) $task->project_id;
-        $this->taskAssigneeId = $task->assignee_id ? (string) $task->assignee_id : '';
+        $this->taskProjectId = (string)$task->project_id;
+        $this->taskAssigneeId = $task->assignee_id ? (string)$task->assignee_id : '';
         $this->taskPriority = $task->priority;
-        $this->taskStartDate = $task->start_date ? $task->start_date->format('Y-m-d') : '';
-        $this->taskDueDate = $task->due_date ? $task->due_date->format('Y-m-d') : '';
+        $this->taskStartDate = $task->start_date ?? '';
+        $this->taskDueDate = $task->due_date ?? '';
         $this->taskStatus = $task->status;
-        $this->taskProgressPercent = (int) $task->progress_percent;
+        $this->taskProgress = (string)$task->progress_percent;
 
-        $this->dispatch('open-task-modal');
+        $this->showTaskModal = true;
     }
 
-    public function updateTask(): void
+    /**
+     * Menyimpan (Create / Update) tugas dari form modal.
+     * Melakukan validasi, terutama mengecek batas tanggal tugas terhadap durasi proyek.
+     */
+    public function saveTask(): void
     {
-        if (! $this->isAdminOrPm()) {
-            abort(403);
-        }
+        $this->checkAdminOrPm();
 
-        $validated = $this->validate([
-            'taskTitle' => ['required', 'string', 'max:200'],
-            'taskDescription' => ['nullable', 'string'],
+        $this->validate([
+            'taskTitle' => ['required', 'max:200'],
             'taskProjectId' => ['required', 'exists:team_projects,id'],
-            'taskAssigneeId' => ['nullable', 'exists:users,id'],
             'taskPriority' => ['required', 'in:low,medium,high'],
-            'taskStartDate' => ['nullable', 'date'],
-            'taskDueDate' => ['nullable', 'date', 'after_or_equal:taskStartDate'],
-            'taskStatus' => ['required', 'in:todo,in_progress,review,done'],
-            'taskProgressPercent' => ['required', 'integer', 'min:0', 'max:100'],
+            'taskDueDate' => ['nullable', 'date'],
+            'taskAssigneeId' => ['nullable', 'exists:users,id'],
+        ], [
+            'taskTitle.required' => 'Judul tugas wajib diisi.',
+            'taskProjectId.required' => 'Proyek wajib dipilih.',
+            'taskPriority.in' => 'Prioritas tidak valid.',
         ]);
 
-        // Validate due_date is not before the project's start_date
-        if ($validated['taskDueDate'] !== null && $validated['taskDueDate'] !== '') {
-            $project = TeamProject::find($validated['taskProjectId']);
-
-            if ($project && $project->start_date && $validated['taskDueDate'] < $project->start_date->format('Y-m-d')) {
-                $this->addError('taskDueDate', 'Due date tidak boleh sebelum tanggal mulai proyek ('.$project->start_date->format('d/m/Y').').');
-
-                return;
+        if ($this->taskDueDate) {
+            $project = \App\Models\TeamProject::find($this->taskProjectId);
+            if ($project && $project->start_date) {
+                if (\Carbon\Carbon::parse($this->taskDueDate)->startOfDay()->lt(\Carbon\Carbon::parse($project->start_date)->startOfDay())) {
+                    $this->addError('taskDueDate', 'Tenggat waktu tidak boleh sebelum tanggal mulai proyek (' . \Carbon\Carbon::parse($project->start_date)->format('d/m/Y') . ').');
+                    return;
+                }
             }
         }
 
-        $task = Task::findOrFail($this->editingTaskId);
+        $data = [
+            'title' => $this->taskTitle,
+            'description' => $this->taskDescription ?: null,
+            'project_id' => $this->taskProjectId,
+            'assignee_id' => $this->taskAssigneeId ?: null,
+            'priority' => $this->taskPriority,
+            'start_date' => $this->taskStartDate ?: null,
+            'due_date' => $this->taskDueDate ?: null,
+        ];
 
-        $task->update([
-            'title' => $validated['taskTitle'],
-            'description' => $validated['taskDescription'] ?? null,
-            'project_id' => (int) $validated['taskProjectId'],
-            'assignee_id' => $validated['taskAssigneeId'] !== '' ? (int) $validated['taskAssigneeId'] : null,
-            'priority' => $validated['taskPriority'],
-            'start_date' => $validated['taskStartDate'] ?: null,
-            'due_date' => $validated['taskDueDate'] ?: null,
-            'status' => $validated['taskStatus'],
-            'progress_percent' => $validated['taskProgressPercent'],
-            'completed_at' => $validated['taskStatus'] === 'done' ? ($task->completed_at ?? now()) : null,
-        ]);
+        if ($this->editingTaskId) {
+            $data['status'] = $this->taskStatus;
+            $data['progress_percent'] = $this->taskProgress !== '' ? $this->taskProgress : 0;
+            if ($this->taskStatus === 'done' && !Task::find($this->editingTaskId)->completed_at) {
+                $data['completed_at'] = now();
+            } elseif ($this->taskStatus !== 'done') {
+                $data['completed_at'] = null;
+            }
 
-        $this->resetTaskForm();
-        $this->dispatch('close-task-modal');
-        session()->flash('success', 'Tugas berhasil diperbarui.');
+            $task = Task::findOrFail($this->editingTaskId);
+            $task->update($data);
+            session()->flash('success', 'Tugas berhasil diperbarui.');
+        } else {
+            Task::create($data);
+            session()->flash('success', 'Tugas berhasil dibuat.');
+        }
+
+        $this->closeTaskModal();
     }
-
-    // ---------------------------------------------------------------------------
-    // Delete Task
-    // ---------------------------------------------------------------------------
 
     public function deleteTask(int $id): void
     {
-        if (! $this->isAdminOrPm()) {
-            abort(403);
-        }
-
+        $this->checkAdminOrPm();
         $task = Task::findOrFail($id);
-        $task->comments()->delete();
         $task->delete();
-
+        
         session()->flash('success', 'Tugas berhasil dihapus.');
+        if ($this->selectedTaskId === $id) {
+            $this->closeDetailModal();
+        }
     }
-
-    // ---------------------------------------------------------------------------
-    // Task Detail & Comments
-    // ---------------------------------------------------------------------------
 
     public function openTask(int $id): void
     {
-        $task = Task::findOrFail($id);
-        $user = $this->currentUser();
-
-        // Employees can only view tasks assigned to them
-        if ($user->role === 'employee' && $task->assignee_id !== $user->id) {
-            abort(403);
-        }
-
         $this->selectedTaskId = $id;
-        $this->newComment = '';
-        $this->dispatch('open-detail-modal');
+        $this->loadSelectedTask();
+        $this->showDetailModal = true;
     }
-
-    public function closeTask(): void
+    
+    private function loadSelectedTask(): void
     {
-        $this->selectedTaskId = null;
-        $this->newComment = '';
+        if ($this->selectedTaskId) {
+            $this->selectedTask = Task::with(['project', 'assignee'])->findOrFail($this->selectedTaskId);
+        }
     }
 
     public function addComment(): void
     {
-        $this->validate(['newComment' => ['required', 'string', 'min:1', 'max:2000']]);
-
+        $this->validate(['newComment' => 'required|min:1|max:2000'], [
+            'newComment.required' => 'Komentar tidak boleh kosong.',
+            'newComment.max' => 'Komentar terlalu panjang.',
+        ]);
+        
         TaskComment::create([
             'task_id' => $this->selectedTaskId,
-            'user_id' => $this->currentUser()->id,
+            'user_id' => Auth::id(),
             'comment' => $this->newComment,
         ]);
+        
+        $this->newComment = '';
+        $this->loadSelectedTask(); // refresh the task data if needed, though comments are queried in view
+    }
 
+    public function closeTaskModal(): void
+    {
+        $this->resetTaskForm();
+    }
+
+    public function closeDetailModal(): void
+    {
+        $this->showDetailModal = false;
+        $this->selectedTaskId = null;
+        $this->selectedTask = null;
         $this->newComment = '';
     }
 
-    // ---------------------------------------------------------------------------
-    // Helpers
-    // ---------------------------------------------------------------------------
-
     private function resetTaskForm(): void
     {
+        $this->editingTaskId = null;
         $this->taskTitle = '';
         $this->taskDescription = '';
         $this->taskProjectId = '';
@@ -382,33 +262,32 @@ class KanbanBoard extends Component
         $this->taskStartDate = '';
         $this->taskDueDate = '';
         $this->taskStatus = 'todo';
-        $this->taskProgressPercent = 0;
-        $this->editingTaskId = null;
+        $this->taskProgress = '0';
+        $this->showTaskModal = false;
         $this->resetValidation();
     }
 
-    // ---------------------------------------------------------------------------
-    // Render
-    // ---------------------------------------------------------------------------
-
-    public function render(): View
+    private function checkAdminOrPm(): void
     {
-        $selectedTask = null;
-        $taskComments = collect();
+        if (!in_array(Auth::user()->role, ['admin', 'project_manager'])) {
+            abort(403, 'Akses ditolak. Fitur ini hanya untuk Admin dan Project Manager.');
+        }
+    }
 
-        if ($this->selectedTaskId !== null) {
-            $selectedTask = Task::with(['assignee:id,name', 'project:id,title'])
-                ->findOrFail($this->selectedTaskId);
-            $taskComments = $selectedTask->comments()
-                ->with('user:id,name')
-                ->orderBy('created_at')
+    public function render()
+    {
+        $comments = collect();
+        if ($this->selectedTaskId) {
+            $comments = TaskComment::with('user')
+                ->where('task_id', $this->selectedTaskId)
+                ->orderBy('created_at', 'asc')
                 ->get();
         }
 
         return view('livewire.kanban-board', [
+            'projects' => $this->projects,
             'tasksByStatus' => $this->tasksByStatus,
-            'selectedTask' => $selectedTask,
-            'taskComments' => $taskComments,
-        ]);
+            'comments' => $comments,
+        ])->title('Kanban Board');
     }
 }

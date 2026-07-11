@@ -2,65 +2,43 @@
 
 namespace App\Models;
 
-use Database\Factories\TeamProjectFactory;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Carbon;
 
 /**
- * @property int $id
- * @property string $title
- * @property string|null $description
- * @property string|null $client_name
- * @property Carbon|null $start_date
- * @property Carbon $deadline
- * @property float $budget
- * @property string $priority
- * @property string $status
- * @property int|null $created_by
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * Class TeamProject
+ * 
+ * Model untuk merepresentasikan tabel team_projects.
+ * Menyimpan data tentang sebuah proyek, termasuk pembuat, tugas-tugas di dalamnya,
+ * dan log waktu yang dihabiskan untuk proyek tersebut.
  */
 class TeamProject extends Model
 {
-    /** @use HasFactory<TeamProjectFactory> */
-    use HasFactory;
+    protected $guarded = [];
 
-    protected $table = 'team_projects';
-
-    protected $fillable = [
-        'title',
-        'description',
-        'client_name',
-        'start_date',
-        'deadline',
-        'budget',
-        'priority',
-        'status',
-        'created_by',
-    ];
-
-    protected function casts(): array
-    {
-        return [
-            'start_date' => 'date',
-            'deadline' => 'date',
-            'budget' => 'decimal:2',
-        ];
-    }
-
+    /**
+     * Relasi ke model User (pembuat).
+     * Proyek dibuat oleh satu orang pengguna (created_by).
+     */
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    /**
+     * Relasi ke model Task.
+     * Sebuah proyek dapat memiliki banyak tugas di dalamnya.
+     */
     public function tasks(): HasMany
     {
         return $this->hasMany(Task::class, 'project_id');
     }
 
+    /**
+     * Relasi ke model TimeLog.
+     * Total waktu kerja (time logs) yang dihabiskan untuk semua tugas dalam proyek ini.
+     */
     public function timeLogs(): HasMany
     {
         return $this->hasMany(TimeLog::class, 'project_id');

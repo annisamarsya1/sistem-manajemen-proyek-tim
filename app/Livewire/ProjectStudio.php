@@ -3,285 +3,183 @@
 namespace App\Livewire;
 
 use App\Models\TeamProject;
-use App\Models\User;
-use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
-use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
 
-#[Title('Project Studio')]
-#[Layout('layouts.app', ['title' => 'Project Studio'])]
+/**
+ * Livewire Component: ProjectStudio
+ * 
+ * Mengelola (CRUD) proyek dalam aplikasi.
+ * Komponen ini hanya bisa diakses oleh Admin atau Project Manager.
+ */
+#[Layout('components.layouts.app')]
 class ProjectStudio extends Component
 {
     use WithPagination;
 
-    // ---------------------------------------------------------------------------
-    // Filters
-    // ---------------------------------------------------------------------------
-
     public string $filterStatus = '';
-
     public string $filterPriority = '';
 
-    // ---------------------------------------------------------------------------
-    // Form fields (shared for create & edit)
-    // ---------------------------------------------------------------------------
-
+    // Form properties
+    public ?int $editingId = null;
     public string $title = '';
-
     public string $description = '';
-
     public string $clientName = '';
-
     public string $budget = '';
-
     public string $startDate = '';
-
     public string $deadline = '';
-
     public string $priority = 'medium';
-
     public string $status = 'planning';
-
-    // ---------------------------------------------------------------------------
-    // Modal / edit state
-    // ---------------------------------------------------------------------------
-
     public bool $showModal = false;
 
-    public ?int $editingId = null;
-
-    // ---------------------------------------------------------------------------
-    // Typed auth helper
-    // ---------------------------------------------------------------------------
-
-    private function currentUser(): User
+    public function mount()
     {
-        $user = Auth::user();
-
-        assert($user instanceof User);
-
-        return $user;
+        $this->title = 'Project Studio';
+        $this->checkAccess();
     }
 
-    // ---------------------------------------------------------------------------
-    // Validation rules
-    // ---------------------------------------------------------------------------
-
-    /**
-     * @return array<string, mixed>
-     */
-    protected function validationRules(): array
+    private function checkAccess(): void
     {
-        return [
-            'title' => ['required', 'string', 'max:200'],
-            'description' => ['nullable', 'string'],
-            'clientName' => ['nullable', 'string', 'max:100'],
-            'budget' => ['nullable', 'numeric', 'min:0'],
-            'startDate' => ['nullable', 'date'],
-            'deadline' => [
-                'required',
-                'date',
-                $this->startDate !== '' ? 'after_or_equal:startDate' : '',
-            ],
-            'priority' => ['required', 'in:low,medium,high,urgent'],
-            'status' => ['required', 'in:planning,active,on_hold,completed,cancelled'],
-        ];
+        if (!in_array(Auth::user()->role, ['admin', 'project_manager'])) {
+            abort(403, 'Akses ditolak.');
+        }
     }
 
-    /**
-     * @return array<string, string>
-     */
-    protected function validationAttributes(): array
+    public function createProject(): void
     {
-        return [
-            'title' => 'judul',
-            'clientName' => 'nama klien',
-            'budget' => 'anggaran',
-            'startDate' => 'tanggal mulai',
-            'deadline' => 'deadline',
-            'priority' => 'prioritas',
-            'status' => 'status',
-        ];
-    }
-
-    // ---------------------------------------------------------------------------
-    // Open / close modal helpers
-    // ---------------------------------------------------------------------------
-
-    public function openCreateModal(): void
-    {
+        $this->checkAccess();
         $this->resetForm();
         $this->showModal = true;
     }
 
-    public function closeModal(): void
-    {
-        $this->showModal = false;
-        $this->resetForm();
-    }
-
-    private function resetForm(): void
-    {
-        $this->reset([
-            'title', 'description', 'clientName', 'budget',
-            'startDate', 'deadline', 'editingId',
-        ]);
-
-        $this->priority = 'medium';
-        $this->status = 'planning';
-        $this->resetValidation();
-    }
-
-    // ---------------------------------------------------------------------------
-    // Create
-    // ---------------------------------------------------------------------------
-
-    public function save(): void
-    {
-        $user = $this->currentUser();
-
-        if (! in_array($user->role, ['admin', 'project_manager'])) {
-            abort(403, 'Anda tidak memiliki akses untuk membuat proyek.');
-        }
-
-        $validated = $this->validate(
-            $this->validationRules(),
-            [],
-            $this->validationAttributes()
-        );
-
-        TeamProject::create([
-            'title' => $validated['title'],
-            'description' => $validated['description'] ?? null,
-            'client_name' => $validated['clientName'] ?? null,
-            'budget' => $validated['budget'] ?? 0,
-            'start_date' => $validated['startDate'] !== '' ? $validated['startDate'] : null,
-            'deadline' => $validated['deadline'],
-            'priority' => $validated['priority'],
-            'status' => $validated['status'],
-            'created_by' => $user->id,
-        ]);
-
-        $this->resetForm();
-        $this->showModal = false;
-
-        session()->flash('success', 'Proyek berhasil dibuat.');
-    }
-
-    // ---------------------------------------------------------------------------
-    // Edit
-    // ---------------------------------------------------------------------------
-
     public function editProject(int $id): void
     {
-        $user = $this->currentUser();
-
-        if (! in_array($user->role, ['admin', 'project_manager'])) {
-            abort(403, 'Anda tidak memiliki akses untuk mengedit proyek.');
-        }
-
+        $this->checkAccess();
         $project = TeamProject::findOrFail($id);
-
+        
         $this->editingId = $project->id;
         $this->title = $project->title;
         $this->description = $project->description ?? '';
         $this->clientName = $project->client_name ?? '';
-        $this->budget = $project->budget !== null ? (string) $project->budget : '';
-        $this->startDate = $project->start_date?->format('Y-m-d') ?? '';
-        $this->deadline = $project->deadline->format('Y-m-d');
+        $this->budget = $project->budget ? (string)$project->budget : '';
+        $this->startDate = $project->start_date ?? '';
+        $this->deadline = $project->deadline;
         $this->priority = $project->priority;
         $this->status = $project->status;
 
         $this->showModal = true;
     }
 
-    public function update(): void
+    /**
+     * Menyimpan data proyek (Create baru atau Update data lama).
+     * Melakukan validasi input sesuai aturan yang ditentukan.
+     */
+    public function save(): void
     {
-        $user = $this->currentUser();
+        $this->checkAccess();
 
-        if (! in_array($user->role, ['admin', 'project_manager'])) {
-            abort(403, 'Anda tidak memiliki akses untuk memperbarui proyek.');
+        $rules = [
+            'title' => ['required', 'max:200'],
+            'priority' => ['required', 'in:low,medium,high,urgent'],
+            'status' => ['required', 'in:planning,active,on_hold,completed,cancelled'],
+            'budget' => ['nullable', 'numeric', 'min:0'],
+        ];
+
+        if ($this->startDate) {
+            $rules['deadline'] = ['required', 'date', 'after_or_equal:startDate'];
+        } else {
+            $rules['deadline'] = ['required', 'date'];
         }
 
-        $project = TeamProject::findOrFail($this->editingId);
-
-        $validated = $this->validate(
-            $this->validationRules(),
-            [],
-            $this->validationAttributes()
-        );
-
-        $project->update([
-            'title' => $validated['title'],
-            'description' => $validated['description'] ?? null,
-            'client_name' => $validated['clientName'] ?? null,
-            'budget' => $validated['budget'] ?? 0,
-            'start_date' => $validated['startDate'] !== '' ? $validated['startDate'] : null,
-            'deadline' => $validated['deadline'],
-            'priority' => $validated['priority'],
-            'status' => $validated['status'],
+        $this->validate($rules, [
+            'title.required' => 'Judul proyek wajib diisi.',
+            'title.max' => 'Judul proyek maksimal 200 karakter.',
+            'deadline.required' => 'Deadline wajib diisi.',
+            'deadline.date' => 'Format deadline tidak valid.',
+            'deadline.after_or_equal' => 'Deadline harus setelah atau sama dengan tanggal mulai.',
+            'priority.in' => 'Prioritas tidak valid.',
+            'status.in' => 'Status tidak valid.',
+            'budget.numeric' => 'Anggaran harus berupa angka.',
+            'budget.min' => 'Anggaran tidak boleh negatif.',
         ]);
 
-        $this->resetForm();
-        $this->showModal = false;
+        $data = [
+            'title' => $this->title,
+            'description' => $this->description ?: null,
+            'client_name' => $this->clientName ?: null,
+            'budget' => $this->budget !== '' ? $this->budget : 0,
+            'start_date' => $this->startDate ?: null,
+            'deadline' => $this->deadline,
+            'priority' => $this->priority,
+            'status' => $this->status,
+        ];
 
-        session()->flash('success', 'Proyek berhasil diperbarui.');
-    }
-
-    // ---------------------------------------------------------------------------
-    // Delete
-    // ---------------------------------------------------------------------------
-
-    public function deleteProject(int $id): void
-    {
-        $user = $this->currentUser();
-
-        if (! in_array($user->role, ['admin', 'project_manager'])) {
-            abort(403, 'Anda tidak memiliki akses untuk menghapus proyek.');
+        if ($this->editingId) {
+            $project = TeamProject::findOrFail($this->editingId);
+            $project->update($data);
+            session()->flash('success', 'Proyek berhasil diperbarui.');
+        } else {
+            $data['created_by'] = Auth::id();
+            TeamProject::create($data);
+            session()->flash('success', 'Proyek berhasil dibuat.');
         }
 
+        $this->resetForm();
+    }
+
+    /**
+     * Menghapus data proyek beserta semua relasinya (via cascade/events).
+     */
+    public function deleteProject(int $id): void
+    {
+        $this->checkAccess();
+        
         $project = TeamProject::findOrFail($id);
         $project->delete();
-
+        
         session()->flash('success', 'Proyek berhasil dihapus.');
     }
 
-    // ---------------------------------------------------------------------------
-    // Reset pagination on filter change
-    // ---------------------------------------------------------------------------
-
-    public function updatedFilterStatus(): void
+    public function closeModal(): void
     {
-        $this->resetPage();
+        $this->resetForm();
     }
 
-    public function updatedFilterPriority(): void
+    private function resetForm(): void
     {
-        $this->resetPage();
+        $this->editingId = null;
+        $this->title = '';
+        $this->description = '';
+        $this->clientName = '';
+        $this->budget = '';
+        $this->startDate = '';
+        $this->deadline = '';
+        $this->priority = 'medium';
+        $this->status = 'planning';
+        $this->showModal = false;
+        
+        // Reset validation errors
+        $this->resetValidation();
     }
 
-    // ---------------------------------------------------------------------------
-    // Render
-    // ---------------------------------------------------------------------------
-
-    public function render(): View
+    public function render()
     {
-        $query = TeamProject::with('creator')
-            ->orderByDesc('created_at');
+        $query = TeamProject::query();
 
-        if ($this->filterStatus !== '') {
+        if ($this->filterStatus) {
             $query->where('status', $this->filterStatus);
         }
 
-        if ($this->filterPriority !== '') {
+        if ($this->filterPriority) {
             $query->where('priority', $this->filterPriority);
         }
 
+        $query->orderBy('created_at', 'desc');
+
         return view('livewire.project-studio', [
             'projects' => $query->paginate(15),
-        ]);
+        ])->title('Project Studio');
     }
 }

@@ -12,15 +12,21 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('users', function (Blueprint $table) {
-            $table->bigIncrements('id');
-            $table->string('name', 100)->comment('Nama lengkap pengguna');
-            $table->string('email', 150)->unique()->comment('Alamat email unik');
-            $table->timestamp('email_verified_at')->nullable()->comment('Waktu verifikasi email');
-            $table->string('password', 255)->comment('Password terenkripsi');
-            $table->enum('role', ['admin', 'project_manager', 'employee'])->default('employee')->index()->comment('Role pengguna: admin, project_manager, employee');
-            $table->boolean('is_active')->default(true)->comment('Status aktif akun');
-            $table->rememberToken();
+            $table->id();
+            $table->string('name', 100);
+            $table->string('email', 150)->unique();
+            $table->string('password', 255);
+
+            // Role pengguna: admin, project_manager, atau employee
+            $table->enum('role', ['admin', 'project_manager', 'employee'])->default('employee');
+
+            // Status aktif akun (untuk soft-disable tanpa hapus data)
+            $table->boolean('is_active')->default(true);
+
             $table->timestamps();
+
+            // Index pada kolom role untuk query filtering berdasarkan role
+            $table->index('role');
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

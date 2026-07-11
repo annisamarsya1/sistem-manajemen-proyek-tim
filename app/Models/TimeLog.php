@@ -2,70 +2,57 @@
 
 namespace App\Models;
 
-use Database\Factories\TimeLogFactory;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 /**
- * @property int $id
- * @property int $user_id
- * @property int $project_id
- * @property int|null $task_id
- * @property Carbon $start_time
- * @property Carbon $end_time
- * @property float $duration_hours
- * @property string|null $notes
- * @property string $status
- * @property int|null $reviewed_by
- * @property Carbon|null $reviewed_at
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * Class TimeLog
+ * 
+ * Model untuk merepresentasikan pencatatan waktu kerja (time logs).
+ * Melacak waktu mulai, waktu selesai, deskripsi pekerjaan, 
+ * dan status persetujuan (approval) oleh reviewer.
  */
 class TimeLog extends Model
 {
-    /** @use HasFactory<TimeLogFactory> */
-    use HasFactory;
+    protected $guarded = [];
 
-    protected $fillable = [
-        'user_id',
-        'project_id',
-        'task_id',
-        'start_time',
-        'end_time',
-        'duration_hours',
-        'notes',
-        'status',
-        'reviewed_by',
-        'reviewed_at',
+    // Casts digunakan untuk memastikan atribut waktu di-cast secara otomatis ke object Carbon (datetime)
+    protected $casts = [
+        'start_time' => 'datetime',
+        'end_time' => 'datetime',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'start_time' => 'datetime',
-            'end_time' => 'datetime',
-            'reviewed_at' => 'datetime',
-            'duration_hours' => 'decimal:2',
-        ];
-    }
-
+    /**
+     * Relasi ke model User (pekerja).
+     * Log waktu ini milik satu pengguna yang mengerjakannya.
+     */
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class);
     }
 
+    /**
+     * Relasi ke model TeamProject.
+     * Log waktu ini terkait dengan satu proyek tertentu.
+     */
     public function project(): BelongsTo
     {
         return $this->belongsTo(TeamProject::class, 'project_id');
     }
 
+    /**
+     * Relasi ke model Task.
+     * Log waktu ini terkait dengan satu tugas tertentu dalam proyek.
+     */
     public function task(): BelongsTo
     {
-        return $this->belongsTo(Task::class, 'task_id');
+        return $this->belongsTo(Task::class);
     }
 
+    /**
+     * Relasi ke model User (reviewer).
+     * Log waktu ini disetujui (approved) atau ditolak oleh satu reviewer (misal: PM).
+     */
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');
