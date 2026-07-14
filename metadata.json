@@ -1,0 +1,6 @@
+{
+  "name": "Sistem Manajemen Proyek Tim",
+  "description": "Landing page publik untuk Sistem Manajemen Proyek Tim, dilengkapi fitur Kanban Board, Pelacakan Waktu, dan Laporan Ekspor.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
