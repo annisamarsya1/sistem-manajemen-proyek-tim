@@ -120,7 +120,7 @@
     </div>
 
     {{-- Create/Edit Task Modal --}}
-    <div x-data="{ open: @entangle('showTaskModal') }" x-show="open" x-cloak class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div x-data="{ open: @entangle('showTaskModal') }" x-show="open" x-cloak class="relative z-[60]" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div x-show="open" x-transition.opacity class="fixed inset-0 bg-ink/60 backdrop-blur-sm"></div>
         <div class="fixed inset-0 z-10 overflow-y-auto">
             <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
