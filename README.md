@@ -1,7 +1,8 @@
 <h1 align="center">Sistem Manajemen Proyek Tim</h1>
 
 <p align="center">
-  <img src="./<img width="1600" height="805" alt="landingpace" src="https://github.com/user-attachments/assets/9f97c9e3-c62f-45fe-8e08-457a6976dbbc" />
+  <img src="./<img width="1600" height="805" alt="landing png" src="https://github.com/user-attachments/assets/9ba98786-fac7-4a71-af6a-88ea2cb95756" />
+ />
 " alt="Landing Page TaskSync" width="100%">
 </p>
 
