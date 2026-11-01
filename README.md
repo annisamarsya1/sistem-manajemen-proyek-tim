@@ -1,7 +1,8 @@
 Sistem Manajemen Proyek Tim
 
 <p align="center">
-  <img src="./<img width="1920" height="1080" alt="Screenshot 2026-11-01 194039" src="https://github.com/user-attachments/assets/fdf35f4d-9b7f-4189-82f5-305ffa5a5a17" />
+  <img src="./<img width="1920" height="1080" alt="<img width="1600" height="805" alt="landingpace" src="https://github.com/user-attachments/assets/7d694fb9-96ba-4024-b963-1821f89960f0" />
+" />
 " alt="Dashboard Sistem Manajemen Proyek Tim" width="100%">
 </p>
 
