@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img src="./image.png" alt="Dashboard TaskSync" width="100%">
+  <img src="./gambar1.png" alt="Dashboard TaskSync" width="100%">
 </p>
 
 <p align="center">
