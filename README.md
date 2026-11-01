@@ -1,13 +1,16 @@
 <h1 align="center">Sistem Manajemen Proyek Tim</h1>
 
 <p align="center">
-  <img src="./gambar2.jpeg" alt="Landing Page TaskSync" width="100%">
+  <img src="gambar2.jpeg" alt="Landing Page TaskSync" width="100%">
+  <br>
+  <sub><b>Landing Page TaskSync</b></sub>
 </p>
 
 <p align="center">
-  <img src="./gambar1.png" alt="Dashboard TaskSync" width="100%">
+  <img src="gambar1.png" alt="Dashboard TaskSync" width="100%">
+  <br>
+  <sub><b>Dashboard TaskSync</b></sub>
 </p>
-
 <p align="center">
 Sistem Manajemen Proyek Tim (TaskSync) merupakan aplikasi berbasis web yang dikembangkan untuk membantu tim dalam mengelola proyek, membagi tugas, memantau progres pekerjaan, serta mencatat waktu kerja setiap anggota. Aplikasi ini dilengkapi dengan Dashboard, Project Studio, Kanban Board, Timesheet, dan User Management untuk memudahkan pengelolaan proyek serta meningkatkan koordinasi dan produktivitas tim.
 </p>
