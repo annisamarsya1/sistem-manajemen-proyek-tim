@@ -1,6 +1,13 @@
-![alt text](image.png)# Sistem Manajemen Proyek Tim
+Sistem Manajemen Proyek Tim
 
-Aplikasi web kolaborasi untuk manajemen proyek, tugas, dan pelacakan waktu kerja tim.
+<p align="center">
+  <img src="./<img width="1920" height="1080" alt="Screenshot 2026-11-01 194039" src="https://github.com/user-attachments/assets/fdf35f4d-9b7f-4189-82f5-305ffa5a5a17" />
+" alt="Dashboard Sistem Manajemen Proyek Tim" width="100%">
+</p>
+
+<p align="center">
+  Aplikasi web kolaborasi untuk manajemen proyek, tugas, dan pelacakan waktu kerja tim.
+</p>
 
 ## Tech Stack
 - Laravel (latest), Livewire 4, Alpine.js, MySQL, Tailwind CSS
