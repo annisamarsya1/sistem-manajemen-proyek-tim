@@ -1,5 +1,5 @@
-![alt text](image.png)# Sistem Manajemen Proyek Tim
-
+Sistem Manajemen Proyek Tim
+![alt text](image.png)
 Aplikasi web kolaborasi untuk manajemen proyek, tugas, dan pelacakan waktu kerja tim.
 
 ## Tech Stack
