@@ -1,7 +1,7 @@
 <h1 align="center">Sistem Manajemen Proyek Tim</h1>
 
 <<p align="center">
-  <img src="./gambar1.png" alt="Landing Page TaskSync" width="100%">
+  <img src="./gambar2.jpeg" alt="Landing Page TaskSync" width="100%">
 </p>
 
 <p align="center">
