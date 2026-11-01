@@ -1,8 +1,12 @@
 <h1 align="center">Sistem Manajemen Proyek Tim</h1>
 
 <p align="center">
-  <img src="./<img width="1920" height="1080" alt="<img width="1600" height="805" alt="landingpace" src="https://github.com/user-attachments/assets/7d694fb9-96ba-4024-b963-1821f89960f0" />
+  <img src="./<img width="1600" height="805" alt="landingpace" src="https://github.com/user-attachments/assets/9f97c9e3-c62f-45fe-8e08-457a6976dbbc" />
+" alt="Landing Page TaskSync" width="100%">
+</p>
 
+<p align="center">
+  <img src="./image.png" alt="Dashboard TaskSync" width="100%">
 </p>
 
 <p align="center">
