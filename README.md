@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  Aplikasi web kolaborasi untuk manajemen proyek, tugas, dan pelacakan waktu kerja tim.
+Sistem Manajemen Proyek Tim (TaskSync) merupakan aplikasi berbasis web yang dikembangkan untuk membantu tim dalam mengelola proyek, membagi tugas, memantau progres pekerjaan, serta mencatat waktu kerja setiap anggota. Aplikasi ini dilengkapi dengan Dashboard, Project Studio, Kanban Board, Timesheet, dan User Management untuk memudahkan pengelolaan proyek serta meningkatkan koordinasi dan produktivitas tim.
 </p>
 
 ## Tech Stack
